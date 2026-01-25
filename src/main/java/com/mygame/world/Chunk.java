@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 public class Chunk {
-
     public static final int SIZE = 16;
     public static final float BLOCK_SIZE = 0.5f;
     private static final double FREQUENCY = 0.05;
