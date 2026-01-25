@@ -112,21 +112,7 @@ public class Chunk {
     }
 
     public void buildMesh(Map<Long, Chunk> neighborChunks) {
-        int visibleFaces = 0;
-        for (Block block : blocks) {
-            int bx = (int) ((block.position().x / BLOCK_SIZE) - chunkX * SIZE);
-            int by = (int) (block.position().y / BLOCK_SIZE);
-            int bz = (int) ((block.position().z / BLOCK_SIZE) - chunkZ * SIZE);
-
-            if (!isBlockAt(bx, by + 1, bz, neighborChunks)) visibleFaces++;
-            if (!isBlockAt(bx, by - 1, bz, neighborChunks)) visibleFaces++;
-            if (!isBlockAt(bx, by, bz + 1, neighborChunks)) visibleFaces++;
-            if (!isBlockAt(bx, by, bz - 1, neighborChunks)) visibleFaces++;
-            if (!isBlockAt(bx - 1, by, bz, neighborChunks)) visibleFaces++;
-            if (!isBlockAt(bx + 1, by, bz, neighborChunks)) visibleFaces++;
-        }
-
-        float[] vertices = new float[visibleFaces * 6 /*вершины*/ * 6 /*float на вершину*/];
+        float[] vertices = new float[blocks.size() * 6  * 6 * 6];
         int index = 0;
 
         float s = BLOCK_SIZE / 2f;
@@ -146,7 +132,9 @@ public class Chunk {
                     top, bottom, front, back, left, right);
         }
 
-        mesh = new ChunkMesh(vertices);
+        float[] finalVertices = new float[index];
+        System.arraycopy(vertices, 0, finalVertices, 0, index);
+        mesh = new ChunkMesh(finalVertices);
     }
 
     private int addCube(float[] v, int index, float x, float y, float z, float s,
