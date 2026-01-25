@@ -30,9 +30,15 @@ public class World {
 
         player = new Player(generateSpawnPoint(startChunk));// спавним игрока над блоком стартового чанка
         entities.add(player); // добавляем игрока в список сущностей
+        int chunkX = worldToChunk(player.getPosition().x);
+        int chunkZ = worldToChunk(player.getPosition().z);
+        ChunkPos pos = new ChunkPos(chunkX, chunkZ);
+        Chunk playerChunk = chunks.get(pos);
+        chunksToUpload.add(playerChunk);
     }
 
     public void update(float deltaTime) {
+
         // генерируем/удаляем чанки вокруг игрока
         generateChunksAround(player.getPosition());
 
@@ -41,8 +47,9 @@ public class World {
             if (chunk != null) {
                 chunks.put(new ChunkPos(chunk.getChunkX(), chunk.getChunkZ()), chunk);
 
-                if (chunksToUpload.size() < MAX_CHUNKS_TO_UPLOAD)
+                if (chunksToUpload.size() < MAX_CHUNKS_TO_UPLOAD) {
                     chunksToUpload.add(chunk);
+                }
             }
         }
         // обновляем все сущности (движение, физика и т.д.)
