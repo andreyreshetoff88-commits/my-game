@@ -1,8 +1,8 @@
 package com.mygame.world;
 
+import com.mygame.noise.OpenSimplexNoise;
 import lombok.Getter;
 import org.joml.Vector3f;
-import com.mygame.noise.OpenSimplexNoise;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,7 +13,8 @@ public class Chunk {
     public static final int SIZE = 16;
     public static final float BLOCK_SIZE = 0.5f;
     private static final double FREQUENCY = 0.05;
-    private static final double MAX_HEIGHT = 20;
+    private static final double MAX_HEIGHT = 50;
+
     // сколько бит выделяем под каждую координату
     private static final int X_BITS = 11; // для X
     private static final int Y_BITS = 10; // для Y
@@ -29,6 +30,7 @@ public class Chunk {
     // смещения, чтобы отрицательные координаты стали положительными
     private static final int X_OFFSET = 1 << (X_BITS - 1); // 1024
     private static final int Z_OFFSET = 1 << (Z_BITS - 1); // 1024
+
     @Getter
     private final List<Block> blocks = new ArrayList<>();
     private final Map<Integer, Block> blockMap = new HashMap<>();
@@ -44,7 +46,7 @@ public class Chunk {
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
         generateBlocks();
-        buildMesh();
+        buildMesh(null);
     }
 
     private void generateBlocks() {
@@ -85,35 +87,70 @@ public class Chunk {
         return (px << X_SHIFT) | (py << Y_SHIFT) | (pz << Z_SHIFT);
     }
 
-    private void buildMesh() {
-        List<Float> data = new ArrayList<>();
-        float s = BLOCK_SIZE / 2f;
+    public boolean isBlockAt(int x, int y, int z, Map<Long, Chunk> neighborChunks) {
+        int key = pack(x, y, z);
+        if (blockMap.containsKey(key)) return true; // текущий чанк
+
+        if (neighborChunks != null) {
+            // преобразуем x,z в координаты соседнего чанка
+            int chunkOffsetX = (x < 0) ? -1 : (x >= SIZE) ? 1 : 0;
+            int chunkOffsetZ = (z < 0) ? -1 : (z >= SIZE) ? 1 : 0;
+
+            if (chunkOffsetX != 0 || chunkOffsetZ != 0) {
+                long neighborKey = (((long) (chunkX + chunkOffsetX)) << 32) | ((chunkZ + chunkOffsetZ) & 0xFFFFFFFFL);
+                Chunk neighbor = neighborChunks.get(neighborKey);
+                if (neighbor != null) {
+                    int nx = x - chunkOffsetX * SIZE;
+                    int nz = z - chunkOffsetZ * SIZE;
+                    return neighbor.blockMap.containsKey(pack(nx, y, nz));
+                }
+            }
+        }
+        return false;
+    }
+
+    private void buildMesh(Map<Long, Chunk> neighborChunks) {
+        int visibleFaces = 0;
         for (Block block : blocks) {
-            // преобразуем мировые координаты в локальные координаты чанка (0..SIZE)
             int bx = (int) ((block.position().x / BLOCK_SIZE) - chunkX * SIZE);
             int by = (int) (block.position().y / BLOCK_SIZE);
             int bz = (int) ((block.position().z / BLOCK_SIZE) - chunkZ * SIZE);
 
-            // проверяем соседей: если сосед отсутствует, грань видима
-            boolean top = !blockMap.containsKey(pack(bx, by + 1, bz));
-            boolean bottom = !blockMap.containsKey(pack(bx, by - 1, bz));
-            boolean front = !blockMap.containsKey(pack(bx, by, bz + 1));
-            boolean back = !blockMap.containsKey(pack(bx, by, bz - 1));
-            boolean left = !blockMap.containsKey(pack(bx - 1, by, bz));
-            boolean right = !blockMap.containsKey(pack(bx + 1, by, bz));
+            if (!isBlockAt(bx, by + 1, bz, neighborChunks)) visibleFaces++;
+            if (!isBlockAt(bx, by - 1, bz, neighborChunks)) visibleFaces++;
+            if (!isBlockAt(bx, by, bz + 1, neighborChunks)) visibleFaces++;
+            if (!isBlockAt(bx, by, bz - 1, neighborChunks)) visibleFaces++;
+            if (!isBlockAt(bx - 1, by, bz, neighborChunks)) visibleFaces++;
+            if (!isBlockAt(bx + 1, by, bz, neighborChunks)) visibleFaces++;
+        }
 
-            // добавляем только видимые грани
-            addCube(data, block.position().x, block.position().y, block.position().z, s,
+        float[] vertices = new float[visibleFaces * 6 /*вершины*/ * 6 /*float на вершину*/];
+        int index = 0;
+
+        float s = BLOCK_SIZE / 2f;
+        for (Block block : blocks) {
+            int bx = (int) ((block.position().x / BLOCK_SIZE) - chunkX * SIZE);
+            int by = (int) (block.position().y / BLOCK_SIZE);
+            int bz = (int) ((block.position().z / BLOCK_SIZE) - chunkZ * SIZE);
+
+            boolean top = !isBlockAt(bx, by + 1, bz, neighborChunks);
+            boolean bottom = !isBlockAt(bx, by - 1, bz, neighborChunks);
+            boolean front = !isBlockAt(bx, by, bz + 1, neighborChunks);
+            boolean back = !isBlockAt(bx, by, bz - 1, neighborChunks);
+            boolean left = !isBlockAt(bx - 1, by, bz, neighborChunks);
+            boolean right = !isBlockAt(bx + 1, by, bz, neighborChunks);
+
+            index = addCube(vertices, index, block.position().x, block.position().y, block.position().z, s,
                     top, bottom, front, back, left, right);
         }
-        float[] vertices = new float[data.size()];
-        for (int i = 0; i < data.size(); i++) vertices[i] = data.get(i);
+
         mesh = new ChunkMesh(vertices);
     }
 
-    private void addCube(List<Float> v, float x, float y, float z, float s,
-                         boolean top, boolean bottom, boolean front,
-                         boolean back, boolean left, boolean right) {
+    private int addCube(float[] v, int index, float x, float y, float z, float s,
+                        boolean top, boolean bottom, boolean front,
+                        boolean back, boolean left, boolean right) {
+
         float[][] colors = {
                 {0.3f, 0.8f, 0.3f}, // верх
                 {0.5f, 0.25f, 0.1f}, // низ
@@ -135,16 +172,16 @@ public class Chunk {
 
         for (int f = 0; f < 6; f++) {
             if (!visible[f]) continue;
-
             for (int i = 0; i < 6; i++) {
-                v.add(x + faces[f][i][0]);
-                v.add(y + faces[f][i][1]);
-                v.add(z + faces[f][i][2]);
-                v.add(colors[f][0]);
-                v.add(colors[f][1]);
-                v.add(colors[f][2]);
+                v[index++] = x + faces[f][i][0];
+                v[index++] = y + faces[f][i][1];
+                v[index++] = z + faces[f][i][2];
+                v[index++] = colors[f][0];
+                v[index++] = colors[f][1];
+                v[index++] = colors[f][2];
             }
         }
+        return index;
     }
 
     public void markUploaded() {
