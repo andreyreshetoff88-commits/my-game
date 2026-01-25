@@ -16,7 +16,6 @@ public class Renderer {
     // Константа: шаг в байтах между вершинами в VBO
     // 3 float позиции + 3 float цвета = 6 float
     private static final int STRIDE = 6 * Float.BYTES;
-
     // Храним VBO каждого чанка, чтобы не пересоздавать каждый кадр
     private final Map<Chunk, Integer> vbos = new HashMap<>();
 
@@ -100,9 +99,7 @@ public class Renderer {
     public void unloadChunk(Chunk chunk) {
         Integer vbo = vbos.remove(chunk); // удаляем из карты
         if (vbo != null) {
-            glDeleteBuffers(vbo);         // освобождаем GPU память
-            // ★ отметим чанк как "не загруженный"
-            chunk.markUploaded();          // здесь можно добавить метод markUnuploaded(), если хотим
+            glDeleteBuffers(vbo);
         }
     }
 
