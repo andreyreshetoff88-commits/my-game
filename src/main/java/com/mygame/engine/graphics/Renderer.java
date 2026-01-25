@@ -111,7 +111,7 @@ public class Renderer {
 
         // переносим в позицию игрока
         glTranslatef(renderPos.x, renderPos.y, renderPos.z);
-        glRotatef(yaw, 0, 1, 0); // поворот по Y
+        glRotatef(-yaw, 0, 1, 0); // поворот по Y
 
         glBegin(GL_QUADS);
 
@@ -149,15 +149,4 @@ public class Renderer {
 
         glPopMatrix(); // возвращаем матрицу
     }
-
-    /**
-     * Удаляем все VBO (очистка GPU)
-     */
-    public void cleanup() {
-        for (Integer vbo : vbos.values()) {
-            glDeleteBuffers(vbo);
-        }
-        vbos.clear();
-    }
-
 }
