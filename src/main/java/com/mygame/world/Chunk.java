@@ -3,26 +3,41 @@ package com.mygame.world;
 import lombok.Getter;
 import org.joml.Vector3f;
 import com.mygame.noise.OpenSimplexNoise;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Chunk {
-
     public static final int SIZE = 16;
     public static final float BLOCK_SIZE = 0.5f;
     private static final double FREQUENCY = 0.05;
     private static final double MAX_HEIGHT = 20;
+    // сколько бит выделяем под каждую координату
+    private static final int X_BITS = 11; // для X
+    private static final int Y_BITS = 10; // для Y
+    private static final int Z_BITS = 11; // для Z
+    // смещения битов
+    private static final int Z_SHIFT = 0;
+    private static final int Y_SHIFT = Z_BITS;
+    private static final int X_SHIFT = Y_BITS + Z_BITS;
+    // маски (оставляют ТОЛЬКО нужное количество бит)
+    private static final int X_MASK = (1 << X_BITS) - 1;
+    private static final int Y_MASK = (1 << Y_BITS) - 1;
+    private static final int Z_MASK = (1 << Z_BITS) - 1;
+    // смещения, чтобы отрицательные координаты стали положительными
+    private static final int X_OFFSET = 1 << (X_BITS - 1); // 1024
+    private static final int Z_OFFSET = 1 << (Z_BITS - 1); // 1024
     @Getter
     private final List<Block> blocks = new ArrayList<>();
-
+    private final Map<Integer, Block> blockMap = new HashMap<>();
     @Getter
     private ChunkMesh mesh;
-
     private final int chunkX;
     private final int chunkZ;
     @Getter
     private boolean uploaded = false;
-
     private static final OpenSimplexNoise noise = new OpenSimplexNoise(123456);
 
     public Chunk(int chunkX, int chunkZ) {
@@ -42,27 +57,63 @@ public class Chunk {
                 double nz = worldZ * FREQUENCY;
 
                 double value = noise.eval(nx, ny, nz);  // возвращает -1..1
-                int height = (int)((value + 1) / 2 * MAX_HEIGHT);
+                int height = (int) ((value + 1) / 2 * MAX_HEIGHT);
                 for (int y = 0; y <= height; y++) {
-                    blocks.add(new Block(new Vector3f(worldX * BLOCK_SIZE, y * BLOCK_SIZE, worldZ * BLOCK_SIZE)));
+                    Vector3f pos = new Vector3f(worldX * BLOCK_SIZE, y * BLOCK_SIZE, worldZ * BLOCK_SIZE);
+                    Block block = new Block(pos);
+                    blocks.add(block);
+
+                    int key = pack(x, y, z);
+                    blockMap.put(key, block);
                 }
             }
         }
+    }
+
+    private int pack(int x, int y, int z) {
+        //Смещаем отрицательные координаты в положительный диапазон
+        int px = x + X_OFFSET; // X: -1024..1023 → 0..2047
+        int py = y;            // Y: 0..1023
+        int pz = z + Z_OFFSET; // Z: -1024..1023 → 0..2047
+
+        //Обрезаем лишние биты (ОЧЕНЬ ВАЖНО)
+        px = px & X_MASK;
+        py = py & Y_MASK;
+        pz = pz & Z_MASK;
+
+        //Сдвигаем каждый компонент в своё место
+        return (px << X_SHIFT) | (py << Y_SHIFT) | (pz << Z_SHIFT);
     }
 
     private void buildMesh() {
         List<Float> data = new ArrayList<>();
         float s = BLOCK_SIZE / 2f;
         for (Block block : blocks) {
-            Vector3f p = block.position();
-            addCube(data, p.x, p.y, p.z, s);
+            // преобразуем мировые координаты в локальные координаты чанка (0..SIZE)
+            int bx = (int) ((block.position().x / BLOCK_SIZE) - chunkX * SIZE);
+            int by = (int) (block.position().y / BLOCK_SIZE);
+            int bz = (int) ((block.position().z / BLOCK_SIZE) - chunkZ * SIZE);
+
+            // проверяем соседей: если сосед отсутствует, грань видима
+            boolean top = !blockMap.containsKey(pack(bx, by + 1, bz));
+            boolean bottom = !blockMap.containsKey(pack(bx, by - 1, bz));
+            boolean front = !blockMap.containsKey(pack(bx, by, bz + 1));
+            boolean back = !blockMap.containsKey(pack(bx, by, bz - 1));
+            boolean left = !blockMap.containsKey(pack(bx - 1, by, bz));
+            boolean right = !blockMap.containsKey(pack(bx + 1, by, bz));
+
+            // добавляем только видимые грани
+            addCube(data, block.position().x, block.position().y, block.position().z, s,
+                    top, bottom, front, back, left, right);
         }
         float[] vertices = new float[data.size()];
         for (int i = 0; i < data.size(); i++) vertices[i] = data.get(i);
         mesh = new ChunkMesh(vertices);
     }
 
-    private void addCube(List<Float> v, float x, float y, float z, float s) {
+    private void addCube(List<Float> v, float x, float y, float z, float s,
+                         boolean top, boolean bottom, boolean front,
+                         boolean back, boolean left, boolean right) {
         float[][] colors = {
                 {0.3f, 0.8f, 0.3f}, // верх
                 {0.5f, 0.25f, 0.1f}, // низ
@@ -72,14 +123,19 @@ public class Chunk {
                 {0.5f, 0.25f, 0.1f}  // право
         };
         float[][][] faces = {
-                {{-s,+s,-s},{+s,+s,-s},{+s,+s,+s},{+s,+s,+s},{-s,+s,+s},{-s,+s,-s}},
-                {{-s,-s,-s},{+s,-s,-s},{+s,-s,+s},{+s,-s,+s},{-s,-s,+s},{-s,-s,-s}},
-                {{-s,-s,+s},{+s,-s,+s},{+s,+s,+s},{+s,+s,+s},{-s,+s,+s},{-s,-s,+s}},
-                {{-s,-s,-s},{+s,-s,-s},{+s,+s,-s},{+s,+s,-s},{-s,+s,-s},{-s,-s,-s}},
-                {{-s,-s,-s},{-s,-s,+s},{-s,+s,+s},{-s,+s,+s},{-s,+s,-s},{-s,-s,-s}},
-                {{+s,-s,-s},{+s,-s,+s},{+s,+s,+s},{+s,+s,+s},{+s,+s,-s},{+s,-s,-s}}
+                {{-s, +s, -s}, {+s, +s, -s}, {+s, +s, +s}, {+s, +s, +s}, {-s, +s, +s}, {-s, +s, -s}},
+                {{-s, -s, -s}, {+s, -s, -s}, {+s, -s, +s}, {+s, -s, +s}, {-s, -s, +s}, {-s, -s, -s}},
+                {{-s, -s, +s}, {+s, -s, +s}, {+s, +s, +s}, {+s, +s, +s}, {-s, +s, +s}, {-s, -s, +s}},
+                {{-s, -s, -s}, {+s, -s, -s}, {+s, +s, -s}, {+s, +s, -s}, {-s, +s, -s}, {-s, -s, -s}},
+                {{-s, -s, -s}, {-s, -s, +s}, {-s, +s, +s}, {-s, +s, +s}, {-s, +s, -s}, {-s, -s, -s}},
+                {{+s, -s, -s}, {+s, -s, +s}, {+s, +s, +s}, {+s, +s, +s}, {+s, +s, -s}, {+s, -s, -s}}
         };
+
+        boolean[] visible = {top, bottom, front, back, left, right};
+
         for (int f = 0; f < 6; f++) {
+            if (!visible[f]) continue;
+
             for (int i = 0; i < 6; i++) {
                 v.add(x + faces[f][i][0]);
                 v.add(y + faces[f][i][1]);
@@ -91,7 +147,6 @@ public class Chunk {
         }
     }
 
-    // ★ ИЗМЕНЕНИЕ: метод для Renderer, чтобы отметить, что меш загружен в GPU
     public void markUploaded() {
         uploaded = true;
     }
