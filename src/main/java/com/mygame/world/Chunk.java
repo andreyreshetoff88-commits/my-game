@@ -13,7 +13,7 @@ public class Chunk {
     public static final int SIZE = 16;
     public static final float BLOCK_SIZE = 0.5f;
     private static final double FREQUENCY = 0.05;
-    private static final double MAX_HEIGHT = 50;
+    private static final double MAX_HEIGHT = 20;
 
     // сколько бит выделяем под каждую координату
     private static final int X_BITS = 11; // для X

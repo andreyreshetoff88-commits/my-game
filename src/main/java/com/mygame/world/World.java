@@ -2,8 +2,10 @@ package com.mygame.world;
 
 import com.mygame.engine.entity.Entity;
 import com.mygame.engine.entity.Player;
+import com.mygame.engine.graphics.Camera;
 import com.mygame.engine.graphics.Renderer;
 import lombok.Getter;
+import lombok.Setter;
 import org.joml.Vector3f;
 
 import java.util.*;
@@ -24,6 +26,8 @@ public class World {
             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());//Executor для фоновой генерации чанков
     private final ConcurrentLinkedQueue<Chunk> readyChunks = new ConcurrentLinkedQueue<>(); //очередь готовых чанков
     private final ConcurrentLinkedQueue<Chunk> chunksToUpload = new ConcurrentLinkedQueue<>();//очередь для чанков, готовых к загрузке в GPU
+    @Setter
+    private Camera camera;
 
     public World() {
         Chunk startChunk = new Chunk(0, 0);// создаём стартовый чанк в центре
@@ -42,15 +46,13 @@ public class World {
 
         // генерируем/удаляем чанки вокруг игрока
         generateChunksAround(player.getPosition());
-
+        System.out.println(chunksToUpload.size());
         while (!readyChunks.isEmpty()) {
             Chunk chunk = readyChunks.poll();
             if (chunk != null) {
                 chunks.put(new ChunkPos(chunk.getChunkX(), chunk.getChunkZ()), chunk);
-
-                if (chunksToUpload.size() < MAX_CHUNKS_TO_UPLOAD) {
+                if (chunksToUpload.size() < MAX_CHUNKS_TO_UPLOAD)
                     chunksToUpload.add(chunk);
-                }
             }
         }
         // обновляем все сущности (движение, физика и т.д.)
@@ -75,8 +77,6 @@ public class World {
                     chunkExecutor.submit(() -> {
                         Chunk newChunk = new Chunk(cp.x(), cp.z());
                         newChunk.buildMesh(null);
-
-                        if (chunksToUpload.size() < MAX_CHUNKS_TO_UPLOAD)
                             readyChunks.add(newChunk);
                     });
                 }
@@ -111,9 +111,23 @@ public class World {
 
         // Рендрим чанки
         for (Chunk chunk : chunks.values()) {
-            // каждый кадр просто рисуем
-            renderer.renderChunk(chunk);
+            if (camera == null || isChunkInFrustum(chunk)) { // если камера не задана, рендерим всё
+                renderer.renderChunk(chunk); // рендерим только видимые чанки
+            }
         }
+    }
+
+    private boolean isChunkInFrustum(Chunk chunk) {
+        // Простая проверка: центр чанка + размер
+        Vector3f chunkCenter = new Vector3f(
+                chunk.getChunkX() * Chunk.SIZE * Chunk.BLOCK_SIZE + Chunk.SIZE * Chunk.BLOCK_SIZE / 2f,
+                0,
+                chunk.getChunkZ() * Chunk.SIZE * Chunk.BLOCK_SIZE + Chunk.SIZE * Chunk.BLOCK_SIZE / 2f
+        );
+
+        float radius = (float) Math.sqrt(3) * Chunk.SIZE * Chunk.BLOCK_SIZE / 2f; // приближённый bounding sphere
+
+        return camera.isSphereInFrustum(chunkCenter, radius);
     }
 
     public List<Block> getNearbyBlocks(Vector3f pos) {
