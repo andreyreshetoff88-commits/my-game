@@ -13,6 +13,8 @@ import java.util.concurrent.Executors;
 
 public class World {
     private static final int VIEW_DISTANCE = 3;// сколько чанков загружаем по X и Z вокруг игрока
+    private static final int MAX_CHUNKS_PER_FRAME = 4;//максимальное количество чанков, которые генерируем за один кадр
+    private static final int MAX_CHUNKS_TO_UPLOAD = 10;//максимальное количество чанков в очереди для GPU
     @Getter
     private Player player; // игрок
     private final List<Entity> entities = new ArrayList<>(); // все сущности
@@ -20,6 +22,7 @@ public class World {
     private final ExecutorService chunkExecutor =
             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());//Executor для фоновой генерации чанков
     private final ConcurrentLinkedQueue<Chunk> readyChunks = new ConcurrentLinkedQueue<>(); //очередь готовых чанков
+    private final ConcurrentLinkedQueue<Chunk> chunksToUpload = new ConcurrentLinkedQueue<>();//очередь для чанков, готовых к загрузке в GPU
 
     public World() {
         Chunk startChunk = new Chunk(0, 0);// создаём стартовый чанк в центре
@@ -32,10 +35,14 @@ public class World {
     public void update(float deltaTime) {
         // генерируем/удаляем чанки вокруг игрока
         generateChunksAround(player.getPosition());
-        while (!readyChunks.isEmpty()){
+
+        while (!readyChunks.isEmpty()) {
             Chunk chunk = readyChunks.poll();
-            if (chunk != null){
+            if (chunk != null) {
                 chunks.put(new ChunkPos(chunk.getChunkX(), chunk.getChunkZ()), chunk);
+
+                if (chunksToUpload.size() < MAX_CHUNKS_TO_UPLOAD)
+                    chunksToUpload.add(chunk);
             }
         }
         // обновляем все сущности (движение, физика и т.д.)
@@ -47,16 +54,22 @@ public class World {
     private void generateChunksAround(Vector3f playerPos) {
         int playerChunkX = worldToChunk(playerPos.x); // чанк игрока по X
         int playerChunkZ = worldToChunk(playerPos.z); // чанк игрока по Z
+
+        int chunksScheduled = 0;
+
         // создаём новые чанки в радиусе VIEW_DISTANCE
         for (int dx = -VIEW_DISTANCE; dx <= VIEW_DISTANCE; dx++) {
             for (int dz = -VIEW_DISTANCE; dz <= VIEW_DISTANCE; dz++) {
                 ChunkPos cp = new ChunkPos(playerChunkX + dx, playerChunkZ + dz);
 
-                if (!chunks.containsKey(cp)) {
-                    chunkExecutor.submit(()->{
+                if (!chunks.containsKey(cp) && chunksScheduled < MAX_CHUNKS_PER_FRAME) {
+                    chunksScheduled++;
+                    chunkExecutor.submit(() -> {
                         Chunk newChunk = new Chunk(cp.x(), cp.z());
                         newChunk.buildMesh(null);
-                        readyChunks.add(newChunk);
+
+                        if (chunksToUpload.size() < MAX_CHUNKS_TO_UPLOAD)
+                            readyChunks.add(newChunk);
                     });
                 }
             }
@@ -75,16 +88,20 @@ public class World {
     }
 
     public void render(Renderer renderer, Vector3f renderPos) {
-        // сначала рендерим сущности (игрок, мобов и т.д.)
+        // Рендерим сущности (игрок, мобов и т.д.)
         for (Entity entity : entities) {
             entity.render(renderer, renderPos);
         }
-        // потом чанки
-        for (Chunk chunk : chunks.values()) {
-            // если чанк ещё не загружен в GPU, загружаем
-            if (!chunk.isUploaded()) {
-                renderer.uploadChunk(chunk);
+        //Загружаем чанки в GPU из очереди (асинхронно)
+        while (!chunksToUpload.isEmpty()) {
+            Chunk chunk = chunksToUpload.poll();
+            if (chunk != null && !chunk.isUploaded()) {
+                renderer.uploadChunk(chunk); // загружаем в GPU
             }
+        }
+
+        // Рендрим чанки
+        for (Chunk chunk : chunks.values()) {
             // каждый кадр просто рисуем
             renderer.renderChunk(chunk);
         }
@@ -136,7 +153,7 @@ public class World {
         return (int) Math.floor(worldCoord / (Chunk.SIZE * Chunk.BLOCK_SIZE));
     }
 
-    public void shutdown(){
+    public void shutdown() {
         chunkExecutor.shutdown();
     }
 }
