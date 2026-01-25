@@ -112,7 +112,7 @@ public class Chunk {
     }
 
     public void buildMesh(Map<Long, Chunk> neighborChunks) {
-        float[] vertices = new float[blocks.size() * 6  * 6 * 6];
+        float[] vertices = new float[blocks.size() * 6 * 6 * 6];
         int index = 0;
 
         float s = BLOCK_SIZE / 2f;
@@ -134,7 +134,12 @@ public class Chunk {
 
         float[] finalVertices = new float[index];
         System.arraycopy(vertices, 0, finalVertices, 0, index);
-        mesh = new ChunkMesh(finalVertices);
+        if (mesh == null)
+            mesh = new ChunkMesh(finalVertices);
+        else {
+            System.arraycopy(finalVertices, 0, mesh.getVertices(), 0, finalVertices.length); // обновляем массив
+            mesh.markDirty(); // отмечаем, что нужно загрузить в GPU
+        }
     }
 
     private int addCube(float[] v, int index, float x, float y, float z, float s,
