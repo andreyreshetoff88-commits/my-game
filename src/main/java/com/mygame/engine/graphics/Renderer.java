@@ -13,19 +13,17 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 
 public class Renderer {
-
-    // ★ Константа: шаг в байтах между вершинами в VBO
+    // Константа: шаг в байтах между вершинами в VBO
     // 3 float позиции + 3 float цвета = 6 float
     private static final int STRIDE = 6 * Float.BYTES;
 
-    // ★ Храним VBO каждого чанка, чтобы не пересоздавать каждый кадр
+    // Храним VBO каждого чанка, чтобы не пересоздавать каждый кадр
     private final Map<Chunk, Integer> vbos = new HashMap<>();
 
     /**
      * Установка сцены (камера + проекция)
      */
     public void beginScene(Camera camera, int width, int height) {
-
         // очистка экрана цветом
         glClearColor(0.2f, 0.3f, 0.4f, 1.0f); // RGBA
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // очищаем буферы цвета и глубины
@@ -53,7 +51,7 @@ public class Renderer {
      * Один раз для каждого чанка
      */
     public void uploadChunk(Chunk chunk) {
-
+        if (chunk.isUploaded()) return;
         ChunkMesh mesh = chunk.getMesh(); // получаем float[] меша
         if (mesh == null) return; // если нет вершин — выходим
 
@@ -74,7 +72,6 @@ public class Renderer {
      * Рисуем чанк каждый кадр
      */
     public void renderChunk(Chunk chunk) {
-
         ChunkMesh mesh = chunk.getMesh();
         if (mesh == null) return;
 
@@ -98,6 +95,15 @@ public class Renderer {
         glDisableClientState(GL_VERTEX_ARRAY);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0); // отвязываем VBO
+    }
+
+    public void unloadChunk(Chunk chunk) {
+        Integer vbo = vbos.remove(chunk); // удаляем из карты
+        if (vbo != null) {
+            glDeleteBuffers(vbo);         // освобождаем GPU память
+            // ★ отметим чанк как "не загруженный"
+            chunk.markUploaded();          // здесь можно добавить метод markUnuploaded(), если хотим
+        }
     }
 
     /**
