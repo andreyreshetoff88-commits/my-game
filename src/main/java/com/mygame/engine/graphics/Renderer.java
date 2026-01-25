@@ -103,6 +103,13 @@ public class Renderer {
         }
     }
 
+    public void cleanup() {
+        for (Integer vbo : vbos.values()) {
+            glDeleteBuffers(vbo);
+        }
+        vbos.clear();
+    }
+
     /**
      * Рисуем игрока (куб)
      */

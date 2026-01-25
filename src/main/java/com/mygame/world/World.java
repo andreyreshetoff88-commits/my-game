@@ -19,6 +19,7 @@ public class World {
     private Player player; // игрок
     private final List<Entity> entities = new ArrayList<>(); // все сущности
     private final Map<ChunkPos, Chunk> chunks = new HashMap<>(); // все чанки в мире
+    @Getter
     private final ExecutorService chunkExecutor =
             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());//Executor для фоновой генерации чанков
     private final ConcurrentLinkedQueue<Chunk> readyChunks = new ConcurrentLinkedQueue<>(); //очередь готовых чанков
@@ -99,6 +100,7 @@ public class World {
         for (Entity entity : entities) {
             entity.render(renderer, renderPos);
         }
+
         //Загружаем чанки в GPU из очереди (асинхронно)
         while (!chunksToUpload.isEmpty()) {
             Chunk chunk = chunksToUpload.poll();

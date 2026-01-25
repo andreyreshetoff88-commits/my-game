@@ -1,8 +1,12 @@
 package com.mygame.engine;
 
+import com.mygame.engine.graphics.Renderer;
 import com.mygame.game.Game;
+import com.mygame.world.World;
 
-import static org.lwjgl.glfw.GLFW.glfwGetTime;
+import java.util.concurrent.TimeUnit;
+
+import static org.lwjgl.glfw.GLFW.*;
 
 public class Engine {
     private final Game game;
@@ -12,15 +16,15 @@ public class Engine {
         this.game = game;
     }
 
-    public void start(){
+    public void start() {
         window = new Window(1280, 720, "Sandbox");
         window.init();
 
         game.init(window);
 
-        float lastTime = (float)glfwGetTime();
+        float lastTime = (float) glfwGetTime();
 
-        while (!window.shouldClosed()){
+        while (!window.shouldClosed()) {
             float currentTime = (float) glfwGetTime();
             float deltaTime = currentTime - lastTime;
             lastTime = currentTime;
@@ -29,7 +33,21 @@ public class Engine {
             game.render();
             window.update();
         }
-
+        cleanup(game.getWorld(), game.getRenderer());
         window.destroy();
+    }
+
+    private void cleanup(World world, Renderer renderer) {
+        world.shutdown();
+        try {
+            if (!world.getChunkExecutor().awaitTermination(2, TimeUnit.SECONDS)) {
+                world.getChunkExecutor().shutdownNow(); // принудительно
+            }
+        } catch (InterruptedException e) {
+            world.getChunkExecutor().shutdownNow();
+        }
+        renderer.cleanup();
+        glfwDestroyWindow(window.getHandle());
+        glfwTerminate();
     }
 }
