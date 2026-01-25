@@ -17,7 +17,7 @@ public class SandboxGame extends Game {
         this.window = window;
         camera = new Camera();
         renderer = new Renderer();
-        world = new World(renderer);
+        world = new World();
 
         physicsSystem = new PhysicsSystem();
         inputHandler = new InputHandler(window, world.getPlayer(), physicsSystem);
@@ -32,7 +32,7 @@ public class SandboxGame extends Game {
         }
         inputHandler.processInput(deltaTime, world.getNearbyBlocks(world.getPlayer().getPosition()));
         camera.setPosition(world.getPlayer().getEyePosition());
-        world.update(deltaTime, renderer);
+        world.update(deltaTime);
         camera.update(world.getPlayer());
     }
 

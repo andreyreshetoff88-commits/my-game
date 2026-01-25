@@ -36,7 +36,9 @@ public class Chunk {
     private final Map<Integer, Block> blockMap = new HashMap<>();
     @Getter
     private ChunkMesh mesh;
+    @Getter
     private final int chunkX;
+    @Getter
     private final int chunkZ;
     @Getter
     private boolean uploaded = false;
@@ -109,7 +111,7 @@ public class Chunk {
         return false;
     }
 
-    private void buildMesh(Map<Long, Chunk> neighborChunks) {
+    public void buildMesh(Map<Long, Chunk> neighborChunks) {
         int visibleFaces = 0;
         for (Block block : blocks) {
             int bx = (int) ((block.position().x / BLOCK_SIZE) - chunkX * SIZE);
