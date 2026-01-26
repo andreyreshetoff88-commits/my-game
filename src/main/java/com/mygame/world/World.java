@@ -46,7 +46,6 @@ public class World {
 
         // генерируем/удаляем чанки вокруг игрока
         generateChunksAround(player.getPosition());
-        System.out.println(chunksToUpload.size());
         while (!readyChunks.isEmpty()) {
             Chunk chunk = readyChunks.poll();
             if (chunk != null) {
@@ -77,7 +76,7 @@ public class World {
                     chunkExecutor.submit(() -> {
                         Chunk newChunk = new Chunk(cp.x(), cp.z());
                         newChunk.buildMesh(null);
-                            readyChunks.add(newChunk);
+                        readyChunks.add(newChunk);
                     });
                 }
             }
@@ -109,12 +108,7 @@ public class World {
             }
         }
 
-        // Рендрим чанки
-        for (Chunk chunk : chunks.values()) {
-            if (camera == null || isChunkInFrustum(chunk)) { // если камера не задана, рендерим всё
-                renderer.renderChunk(chunk); // рендерим только видимые чанки
-            }
-        }
+        renderer.renderChunk();
     }
 
     private boolean isChunkInFrustum(Chunk chunk) {
