@@ -2,10 +2,8 @@ package com.mygame.world;
 
 import com.mygame.engine.entity.Entity;
 import com.mygame.engine.entity.Player;
-import com.mygame.engine.graphics.Camera;
 import com.mygame.engine.graphics.Renderer;
 import lombok.Getter;
-import lombok.Setter;
 import org.joml.Vector3f;
 
 import java.util.*;
@@ -26,8 +24,6 @@ public class World {
             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());//Executor для фоновой генерации чанков
     private final ConcurrentLinkedQueue<Chunk> readyChunks = new ConcurrentLinkedQueue<>(); //очередь готовых чанков
     private final ConcurrentLinkedQueue<Chunk> chunksToUpload = new ConcurrentLinkedQueue<>();//очередь для чанков, готовых к загрузке в GPU
-    @Setter
-    private Camera camera;
 
     public World() {
         Chunk startChunk = new Chunk(0, 0);// создаём стартовый чанк в центре
@@ -109,19 +105,6 @@ public class World {
         }
 
         renderer.renderChunk();
-    }
-
-    private boolean isChunkInFrustum(Chunk chunk) {
-        // Простая проверка: центр чанка + размер
-        Vector3f chunkCenter = new Vector3f(
-                chunk.getChunkX() * Chunk.SIZE * Chunk.BLOCK_SIZE + Chunk.SIZE * Chunk.BLOCK_SIZE / 2f,
-                0,
-                chunk.getChunkZ() * Chunk.SIZE * Chunk.BLOCK_SIZE + Chunk.SIZE * Chunk.BLOCK_SIZE / 2f
-        );
-
-        float radius = (float) Math.sqrt(3) * Chunk.SIZE * Chunk.BLOCK_SIZE / 2f; // приближённый bounding sphere
-
-        return camera.isSphereInFrustum(chunkCenter, radius);
     }
 
     public List<Block> getNearbyBlocks(Vector3f pos) {
