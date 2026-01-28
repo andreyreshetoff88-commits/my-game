@@ -6,12 +6,11 @@ import lombok.Getter;
 public class ChunkMesh {
     private float[] vertices;
     private int vertexCount;
-    private final int vboId = -1;
     private boolean dirty;
 
     public ChunkMesh(float[] vertices) {
         this.vertices = vertices;
-        this.vertexCount = vertices.length / 6;
+        this.vertexCount = vertices.length / 8;
         this.dirty = true;
     }
 

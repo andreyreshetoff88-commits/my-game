@@ -2,6 +2,7 @@ package com.mygame.engine.graphics;
 
 import com.mygame.engine.graphics.shader.Shader;
 import com.mygame.engine.graphics.shader.ShaderManager;
+import com.mygame.engine.graphics.textures.Texture;
 import com.mygame.world.Chunk;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -16,12 +17,14 @@ public class Renderer {
     private final Projection projection;
     private final Matrix4f modelMatrix = new Matrix4f();
     private final List<VertexArray> chunkVAOs = new ArrayList<>();
+    private final Texture dirtTexture;
 
     public Renderer() {
         shader = new Shader("src/main/resources/shaders/basic.vert",
                 "src/main/resources/shaders/basic.frag");
         ShaderManager.getInstance().addShader("basic", shader);
         projection = new Projection(60.0f, 0.1f, 100.0f);
+        dirtTexture = new Texture("src/main/resources/textures/blocks/dirt.png");
     }
 
     public void beginScene(Camera camera, int width, int height) {
@@ -36,6 +39,9 @@ public class Renderer {
         shader.setUniform("uProjection", projection.getProjectionMatrix());
         shader.setUniform("uView", camera.getViewMatrix());
         shader.setUniform("uModel", modelMatrix.identity());
+
+        dirtTexture.bind(0);
+        shader.setUniform("uTexture", 0);
     }
 
     public void uploadChunk(Chunk chunk) {

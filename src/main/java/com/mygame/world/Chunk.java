@@ -149,13 +149,14 @@ public class Chunk {
         float[][][] faces = {
                 {{-s, +s, -s}, {+s, +s, -s}, {+s, +s, +s}, {+s, +s, +s}, {-s, +s, +s}, {-s, +s, -s}},
                 {{-s, -s, -s}, {+s, -s, -s}, {+s, -s, +s}, {+s, -s, +s}, {-s, -s, +s}, {-s, -s, -s}},
-                {{-s, -s, +s}, {+s, +s, +s}, {+s, -s, +s}, {+s, +s, +s}, {-s, -s, +s}, {-s, +s, +s}},
+                {{+s, +s, +s}, {+s, -s, +s}, {-s, -s, +s}, {-s, -s, +s}, {-s, +s, +s}, {+s, +s, +s}},
                 {{-s, -s, -s}, {+s, -s, -s}, {+s, +s, -s}, {+s, +s, -s}, {-s, +s, -s}, {-s, -s, -s}},
-                {{-s, -s, -s}, {-s, +s, +s}, {-s, -s, +s}, {-s, +s, +s}, {-s, -s, -s}, {-s, +s, -s}},
+                {{-s, +s, +s}, {-s, -s, +s}, {-s, -s, -s}, {-s, -s, -s}, {-s, +s, -s}, {-s, +s, +s}},
                 {{+s, -s, -s}, {+s, -s, +s}, {+s, +s, +s}, {+s, +s, +s}, {+s, +s, -s}, {+s, -s, -s}}
         };
 
         boolean[] visible = {top, bottom, front, back, left, right};
+        float[][] uvCoords = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
 
         for (int f = 0; f < 6; f++) {
             if (!visible[f]) continue;
@@ -166,6 +167,27 @@ public class Chunk {
                 v[index++] = colors[f][0];
                 v[index++] = colors[f][1];
                 v[index++] = colors[f][2];
+
+                int uvIndex = i % 6;
+                if (uvIndex == 0) {
+                    v[index++] = uvCoords[0][0];
+                    v[index++] = uvCoords[0][1];
+                } else if (uvIndex == 1) {
+                    v[index++] = uvCoords[1][0];
+                    v[index++] = uvCoords[1][1];
+                } else if (uvIndex == 2) {
+                    v[index++] = uvCoords[2][0];
+                    v[index++] = uvCoords[2][1];
+                } else if (uvIndex == 3) {
+                    v[index++] = uvCoords[2][0];
+                    v[index++] = uvCoords[2][1];
+                } else if (uvIndex == 4) {
+                    v[index++] = uvCoords[3][0];
+                    v[index++] = uvCoords[3][1];
+                } else {
+                    v[index++] = uvCoords[0][0];
+                    v[index++] = uvCoords[0][1];
+                }
             }
         }
         return index;
