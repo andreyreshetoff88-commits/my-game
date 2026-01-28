@@ -18,7 +18,6 @@ public class Engine {
 
     public void start() {
         window = new Window(1280, 720, "Sandbox");
-        window.init();
 
         game.init(window);
 
@@ -47,7 +46,6 @@ public class Engine {
             world.getChunkExecutor().shutdownNow();
         }
         renderer.cleanup();
-        glfwDestroyWindow(window.getHandle());
-        glfwTerminate();
+        window.destroy();
     }
 }
