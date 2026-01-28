@@ -15,21 +15,17 @@ public class Chunk {
     private static final double FREQUENCY = 0.05;
     private static final double MAX_HEIGHT = 20;
 
-    // сколько бит выделяем под каждую координату
-    private static final int X_BITS = 11; // для X
-    private static final int Y_BITS = 10; // для Y
-    private static final int Z_BITS = 11; // для Z
-    // смещения битов
+    private static final int X_BITS = 11;
+    private static final int Y_BITS = 10;
+    private static final int Z_BITS = 11;
     private static final int Z_SHIFT = 0;
     private static final int Y_SHIFT = Z_BITS;
     private static final int X_SHIFT = Y_BITS + Z_BITS;
-    // маски (оставляют ТОЛЬКО нужное количество бит)
     private static final int X_MASK = (1 << X_BITS) - 1;
     private static final int Y_MASK = (1 << Y_BITS) - 1;
     private static final int Z_MASK = (1 << Z_BITS) - 1;
-    // смещения, чтобы отрицательные координаты стали положительными
-    private static final int X_OFFSET = 1 << (X_BITS - 1); // 1024
-    private static final int Z_OFFSET = 1 << (Z_BITS - 1); // 1024
+    private static final int X_OFFSET = 1 << (X_BITS - 1);
+    private static final int Z_OFFSET = 1 << (Z_BITS - 1);
 
     @Getter
     private final List<Block> blocks = new ArrayList<>();
@@ -57,10 +53,10 @@ public class Chunk {
                 int worldX = chunkX * SIZE + x;
                 int worldZ = chunkZ * SIZE + z;
                 double nx = worldX * FREQUENCY;
-                double ny = 0;               // фиксированное значение, т.к. мы хотим высоту по x/z
+                double ny = 0;
                 double nz = worldZ * FREQUENCY;
 
-                double value = noise.eval(nx, ny, nz);  // возвращает -1..1
+                double value = noise.eval(nx, ny, nz);
                 int height = (int) ((value + 1) / 2 * MAX_HEIGHT);
                 for (int y = 0; y <= height; y++) {
                     Vector3f pos = new Vector3f(worldX * BLOCK_SIZE, y * BLOCK_SIZE, worldZ * BLOCK_SIZE);
@@ -75,26 +71,22 @@ public class Chunk {
     }
 
     private int pack(int x, int y, int z) {
-        //Смещаем отрицательные координаты в положительный диапазон
-        int px = x + X_OFFSET; // X: -1024..1023 → 0..2047
-        int py = y;            // Y: 0..1023
-        int pz = z + Z_OFFSET; // Z: -1024..1023 → 0..2047
+        int px = x + X_OFFSET;
+        int py = y;
+        int pz = z + Z_OFFSET;
 
-        //Обрезаем лишние биты (ОЧЕНЬ ВАЖНО)
         px = px & X_MASK;
         py = py & Y_MASK;
         pz = pz & Z_MASK;
 
-        //Сдвигаем каждый компонент в своё место
         return (px << X_SHIFT) | (py << Y_SHIFT) | (pz << Z_SHIFT);
     }
 
     public boolean isBlockAt(int x, int y, int z, Map<Long, Chunk> neighborChunks) {
         int key = pack(x, y, z);
-        if (blockMap.containsKey(key)) return true; // текущий чанк
+        if (blockMap.containsKey(key)) return true;
 
         if (neighborChunks != null) {
-            // преобразуем x,z в координаты соседнего чанка
             int chunkOffsetX = (x < 0) ? -1 : (x >= SIZE) ? 1 : 0;
             int chunkOffsetZ = (z < 0) ? -1 : (z >= SIZE) ? 1 : 0;
 
@@ -137,8 +129,8 @@ public class Chunk {
         if (mesh == null)
             mesh = new ChunkMesh(finalVertices);
         else {
-            System.arraycopy(finalVertices, 0, mesh.getVertices(), 0, finalVertices.length); // обновляем массив
-            mesh.markDirty(); // отмечаем, что нужно загрузить в GPU
+            System.arraycopy(finalVertices, 0, mesh.getVertices(), 0, finalVertices.length);
+            mesh.markDirty();
         }
     }
 
@@ -147,25 +139,19 @@ public class Chunk {
                         boolean back, boolean left, boolean right) {
 
         float[][] colors = {
-                {0.3f, 0.8f, 0.3f}, // верх
-                {0.5f, 0.25f, 0.1f}, // низ
-                {0.5f, 0.25f, 0.1f}, // перед
-                {0.5f, 0.25f, 0.1f}, // зад
-                {0.5f, 0.25f, 0.1f}, // лево
-                {0.5f, 0.25f, 0.1f}  // право
+                {0.3f, 0.8f, 0.3f},
+                {0.5f, 0.25f, 0.1f},
+                {0.5f, 0.25f, 0.1f},
+                {0.5f, 0.25f, 0.1f},
+                {0.5f, 0.25f, 0.1f},
+                {0.5f, 0.25f, 0.1f}
         };
         float[][][] faces = {
-                // Верхняя грань (Y+) - смотрим снизу вверх
                 {{-s, +s, -s}, {+s, +s, -s}, {+s, +s, +s}, {+s, +s, +s}, {-s, +s, +s}, {-s, +s, -s}},
-                // Нижняя грань (Y-) - смотрим сверху вниз
                 {{-s, -s, -s}, {+s, -s, -s}, {+s, -s, +s}, {+s, -s, +s}, {-s, -s, +s}, {-s, -s, -s}},
-                // ПЕРЕДНЯЯ грань (Z+) - смотрим спереди
                 {{-s, -s, +s}, {+s, +s, +s}, {+s, -s, +s}, {+s, +s, +s}, {-s, -s, +s}, {-s, +s, +s}},
-                // ЗАДНЯЯ грань (Z-) - смотрим сзади
                 {{-s, -s, -s}, {+s, -s, -s}, {+s, +s, -s}, {+s, +s, -s}, {-s, +s, -s}, {-s, -s, -s}},
-                // ЛЕВАЯ грань (X-) - смотрим слева
                 {{-s, -s, -s}, {-s, +s, +s}, {-s, -s, +s}, {-s, +s, +s}, {-s, -s, -s}, {-s, +s, -s}},
-                // ПРАВАЯ грань (X+) - смотрим справа
                 {{+s, -s, -s}, {+s, -s, +s}, {+s, +s, +s}, {+s, +s, +s}, {+s, +s, -s}, {+s, -s, -s}}
         };
 

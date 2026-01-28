@@ -12,25 +12,25 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class World {
-    private static final int VIEW_DISTANCE = 3;// сколько чанков загружаем по X и Z вокруг игрока
-    private static final int MAX_CHUNKS_PER_FRAME = 4;//максимальное количество чанков, которые генерируем за один кадр
-    private static final int MAX_CHUNKS_TO_UPLOAD = 10;//максимальное количество чанков в очереди для GPU
+    private static final int VIEW_DISTANCE = 3;
+    private static final int MAX_CHUNKS_PER_FRAME = 4;
+    private static final int MAX_CHUNKS_TO_UPLOAD = 10;
     @Getter
-    private Player player; // игрок
-    private final List<Entity> entities = new ArrayList<>(); // все сущности
-    private final Map<ChunkPos, Chunk> chunks = new HashMap<>(); // все чанки в мире
+    private Player player;
+    private final List<Entity> entities = new ArrayList<>();
+    private final Map<ChunkPos, Chunk> chunks = new HashMap<>();
     @Getter
     private final ExecutorService chunkExecutor =
-            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());//Executor для фоновой генерации чанков
-    private final ConcurrentLinkedQueue<Chunk> readyChunks = new ConcurrentLinkedQueue<>(); //очередь готовых чанков
-    private final ConcurrentLinkedQueue<Chunk> chunksToUpload = new ConcurrentLinkedQueue<>();//очередь для чанков, готовых к загрузке в GPU
+            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private final ConcurrentLinkedQueue<Chunk> readyChunks = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<Chunk> chunksToUpload = new ConcurrentLinkedQueue<>();
 
     public World() {
-        Chunk startChunk = new Chunk(0, 0);// создаём стартовый чанк в центре
+        Chunk startChunk = new Chunk(0, 0);
         chunks.put(new ChunkPos(0, 0), startChunk);
 
-        player = new Player(generateSpawnPoint(startChunk));// спавним игрока над блоком стартового чанка
-        entities.add(player); // добавляем игрока в список сущностей
+        player = new Player(generateSpawnPoint(startChunk));
+        entities.add(player);
         int chunkX = worldToChunk(player.getPosition().x);
         int chunkZ = worldToChunk(player.getPosition().z);
         ChunkPos pos = new ChunkPos(chunkX, chunkZ);
@@ -39,8 +39,6 @@ public class World {
     }
 
     public void update(float deltaTime) {
-
-        // генерируем/удаляем чанки вокруг игрока
         generateChunksAround(player.getPosition());
         while (!readyChunks.isEmpty()) {
             Chunk chunk = readyChunks.poll();
@@ -50,19 +48,17 @@ public class World {
                     chunksToUpload.add(chunk);
             }
         }
-        // обновляем все сущности (движение, физика и т.д.)
         for (Entity entity : entities) {
             entity.update(deltaTime, getNearbyBlocks(entity.getPosition()));
         }
     }
 
     private void generateChunksAround(Vector3f playerPos) {
-        int playerChunkX = worldToChunk(playerPos.x); // чанк игрока по X
-        int playerChunkZ = worldToChunk(playerPos.z); // чанк игрока по Z
+        int playerChunkX = worldToChunk(playerPos.x);
+        int playerChunkZ = worldToChunk(playerPos.z);
 
         int chunksScheduled = 0;
 
-        // создаём новые чанки в радиусе VIEW_DISTANCE
         for (int dx = -VIEW_DISTANCE; dx <= VIEW_DISTANCE; dx++) {
             for (int dz = -VIEW_DISTANCE; dz <= VIEW_DISTANCE; dz++) {
                 ChunkPos cp = new ChunkPos(playerChunkX + dx, playerChunkZ + dz);
@@ -77,7 +73,6 @@ public class World {
                 }
             }
         }
-        // удаляем чанки, которые вышли за VIEW_DISTANCE
         Iterator<Map.Entry<ChunkPos, Chunk>> it = chunks.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<ChunkPos, Chunk> entry = it.next();
@@ -85,22 +80,20 @@ public class World {
             int dx = Math.abs(cp.x() - playerChunkX);
             int dz = Math.abs(cp.z() - playerChunkZ);
             if (dx > VIEW_DISTANCE || dz > VIEW_DISTANCE) {
-                it.remove(); // удаляем из карты
+                it.remove();
             }
         }
     }
 
     public void render(Renderer renderer, Vector3f renderPos) {
-        // Рендерим сущности (игрок, мобов и т.д.)
         for (Entity entity : entities) {
             entity.render(renderer, renderPos);
         }
 
-        //Загружаем чанки в GPU из очереди (асинхронно)
         while (!chunksToUpload.isEmpty()) {
             Chunk chunk = chunksToUpload.poll();
             if (chunk != null && !chunk.isUploaded()) {
-                renderer.uploadChunk(chunk); // загружаем в GPU
+                renderer.uploadChunk(chunk);
             }
         }
 
@@ -110,12 +103,10 @@ public class World {
     public List<Block> getNearbyBlocks(Vector3f pos) {
         List<Block> result = new ArrayList<>();
 
-        int cx = worldToChunk(pos.x); // чанк по X
-        int cz = worldToChunk(pos.z); // чанк по Z
-        // проверяем 3x3 чанка вокруг позиции
+        int cx = worldToChunk(pos.x);
+        int cz = worldToChunk(pos.z);
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-
                 Chunk chunk = chunks.get(new ChunkPos(cx + dx, cz + dz));
                 if (chunk != null) {
                     result.addAll(chunk.getBlocks());
@@ -129,27 +120,23 @@ public class World {
     private Vector3f generateSpawnPoint(Chunk chunk) {
         float maxY = Float.NEGATIVE_INFINITY;
         Vector3f top = null;
-        // ищем самый высокий блок в чанке
         for (Block block : chunk.getBlocks()) {
             if (block.position().y > maxY) {
                 maxY = block.position().y;
                 top = block.position();
             }
         }
-        // если нашли блок — спавним игрока над ним
         if (top != null) {
             return new Vector3f(
                     top.x,
-                    top.y + Chunk.BLOCK_SIZE + 0.01f, // чуть выше блока
+                    top.y + Chunk.BLOCK_SIZE + 0.01f,
                     top.z
             );
         }
-        // fallback, если блоков нет
         return new Vector3f(0, 5, 0);
     }
 
     private int worldToChunk(float worldCoord) {
-        // делим на размер чанка и округляем вниз
         return (int) Math.floor(worldCoord / (Chunk.SIZE * Chunk.BLOCK_SIZE));
     }
 

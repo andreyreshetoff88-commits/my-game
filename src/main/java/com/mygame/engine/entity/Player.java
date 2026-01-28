@@ -10,11 +10,11 @@ import java.util.List;
 @Getter
 public class Player extends Entity {
     private final float mouseSensitivity = 0.1f;
-    private float moveSpeed = 3.0f;
+    private final float moveSpeed = 3.0f;
     private final float jumpStrength = 4f;
 
     public Player(Vector3f startPosition) {
-        this.position.set(startPosition); // Параметры игрока
+        this.position.set(startPosition);
         this.height = 0.9f;
         this.radius = 0.18f;
     }
@@ -74,9 +74,7 @@ public class Player extends Entity {
         if (!onGround) {
             return;
         }
-        // Начальная скорость прыжка вверх
         velocity.y = jumpStrength;
-        // Игрок больше не на земле
         onGround = false;
     }
 }
