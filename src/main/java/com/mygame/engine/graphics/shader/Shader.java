@@ -1,7 +1,6 @@
 package com.mygame.engine.graphics.shader;
 
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 
 import java.io.IOException;
@@ -69,17 +68,11 @@ public class Shader {
         }
     }
 
-    public void setUniform(String name, Vector3f vector) {
+    public void setUniform(String name, int[] value) {
         int location = glGetUniformLocation(programID, name);
         if (location != -1) {
-            glUniform3f(location, vector.x, vector.y, vector.z);
-        }
-    }
-
-    public void setUniform(String name, float value) {
-        int location = glGetUniformLocation(programID, name);
-        if (location != -1) {
-            glUniform1f(location, value);
+            int samplerLoc = glGetUniformLocation(programID, name);
+            glUniform1iv(samplerLoc, value);
         }
     }
 

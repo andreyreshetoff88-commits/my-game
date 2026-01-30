@@ -60,7 +60,17 @@ public class Chunk {
                 int height = (int) ((value + 1) / 2 * MAX_HEIGHT);
                 for (int y = 0; y <= height; y++) {
                     Vector3f pos = new Vector3f(worldX * BLOCK_SIZE, y * BLOCK_SIZE, worldZ * BLOCK_SIZE);
-                    Block block = new Block(pos);
+
+                    BlockType blockType;
+                    if (y == height) {
+                        blockType = BlockType.GRASS; // Трава на поверхности
+                    } else if (y > height - 3) {
+                        blockType = BlockType.DIRT;  // Земля чуть ниже
+                    } else {
+                        blockType = BlockType.STONE; // Камень глубоко
+                    }
+
+                    Block block = new Block(pos, blockType);
                     blocks.add(block);
 
                     int key = pack(x, y, z);
@@ -104,10 +114,9 @@ public class Chunk {
     }
 
     public void buildMesh(Map<Long, Chunk> neighborChunks) {
-        float[] vertices = new float[blocks.size() * 6 * 6 * 6];
-        int index = 0;
-
+        List<Float> verticesList = new ArrayList<>();
         float s = BLOCK_SIZE / 2f;
+
         for (Block block : blocks) {
             int bx = (int) ((block.position().x / BLOCK_SIZE) - chunkX * SIZE);
             int by = (int) (block.position().y / BLOCK_SIZE);
@@ -120,78 +129,140 @@ public class Chunk {
             boolean left = !isBlockAt(bx - 1, by, bz, neighborChunks);
             boolean right = !isBlockAt(bx + 1, by, bz, neighborChunks);
 
-            index = addCube(vertices, index, block.position().x, block.position().y, block.position().z, s,
-                    top, bottom, front, back, left, right);
+            addCube(verticesList, block.position().x, block.position().y, block.position().z, s,
+                    top, bottom, front, back, left, right, block.blockType());
         }
 
-        float[] finalVertices = new float[index];
-        System.arraycopy(vertices, 0, finalVertices, 0, index);
+        float[] vertices = new float[verticesList.size()];
+        for (int i = 0; i < verticesList.size(); i++) {
+            vertices[i] = verticesList.get(i);
+        }
+
         if (mesh == null)
-            mesh = new ChunkMesh(finalVertices);
+            mesh = new ChunkMesh(vertices);
         else {
-            System.arraycopy(finalVertices, 0, mesh.getVertices(), 0, finalVertices.length);
-            mesh.markDirty();
+            mesh.updateVertices(vertices);
         }
     }
 
-    private int addCube(float[] v, int index, float x, float y, float z, float s,
-                        boolean top, boolean bottom, boolean front,
-                        boolean back, boolean left, boolean right) {
+    private void addCube(List<Float> vertices, float x, float y, float z, float s,
+                         boolean top, boolean bottom, boolean front,
+                         boolean back, boolean left, boolean right, BlockType blockType) {
 
-        float[][] colors = {
-                {0.3f, 0.8f, 0.3f},
-                {0.5f, 0.25f, 0.1f},
-                {0.5f, 0.25f, 0.1f},
-                {0.5f, 0.25f, 0.1f},
-                {0.5f, 0.25f, 0.1f},
-                {0.5f, 0.25f, 0.1f}
-        };
+        // ТИПЫ ТЕКСТУР ДЛЯ ШЕЙДЕРА
+        final float GRASS_TOP_TEX = 0.0f;
+        final float GRASS_SIDE_TEX = 1.0f;
+        final float DIRT_TEX = 2.0f;
+        final float STONE_TEX = 3.0f;
+        final float WOOD_TOP_TEX = 4.0f;
+        final float WOOD_SIDE_TEX = 5.0f;
+
+        // Цвет вершин
+        float[] whiteColor = {1.0f, 1.0f, 1.0f};
+
+        // Координаты граней куба
         float[][][] faces = {
+                // face 0: Верхняя грань
                 {{-s, +s, -s}, {+s, +s, -s}, {+s, +s, +s}, {+s, +s, +s}, {-s, +s, +s}, {-s, +s, -s}},
+                // face 1: Нижняя грань
                 {{-s, -s, -s}, {+s, -s, -s}, {+s, -s, +s}, {+s, -s, +s}, {-s, -s, +s}, {-s, -s, -s}},
-                {{+s, +s, +s}, {+s, -s, +s}, {-s, -s, +s}, {-s, -s, +s}, {-s, +s, +s}, {+s, +s, +s}},
+                // face 2: Передняя грань
+                {{+s, -s, +s}, {-s, -s, +s}, {-s, +s, +s}, {-s, +s, +s}, {+s, +s, +s}, {+s, -s, +s}},
+                // face 3: Задняя грань
                 {{-s, -s, -s}, {+s, -s, -s}, {+s, +s, -s}, {+s, +s, -s}, {-s, +s, -s}, {-s, -s, -s}},
-                {{-s, +s, +s}, {-s, -s, +s}, {-s, -s, -s}, {-s, -s, -s}, {-s, +s, -s}, {-s, +s, +s}},
+                // face 4: Левая грань
+                {{-s, -s, +s}, {-s, -s, -s}, {-s, +s, -s}, {-s, +s, -s}, {-s, +s, +s}, {-s, -s, +s}},
+                // face 5: Правая грань
                 {{+s, -s, -s}, {+s, -s, +s}, {+s, +s, +s}, {+s, +s, +s}, {+s, +s, -s}, {+s, -s, -s}}
         };
 
+        // Флаги видимости для каждой грани
         boolean[] visible = {top, bottom, front, back, left, right};
-        float[][] uvCoords = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
 
-        for (int f = 0; f < 6; f++) {
-            if (!visible[f]) continue;
-            for (int i = 0; i < 6; i++) {
-                v[index++] = x + faces[f][i][0];
-                v[index++] = y + faces[f][i][1];
-                v[index++] = z + faces[f][i][2];
-                v[index++] = colors[f][0];
-                v[index++] = colors[f][1];
-                v[index++] = colors[f][2];
+        // UV координаты для одной грани (2 треугольника = 6 вершин)
+        float[] uvCoords = {
+                0, 0,  // Вершина 0
+                1, 0,  // Вершина 1
+                1, 1,  // Вершина 2
+                1, 1,  // Вершина 3
+                0, 1,  // Вершина 4
+                0, 0   // Вершина 5
+        };
 
-                int uvIndex = i % 6;
-                if (uvIndex == 0) {
-                    v[index++] = uvCoords[0][0];
-                    v[index++] = uvCoords[0][1];
-                } else if (uvIndex == 1) {
-                    v[index++] = uvCoords[1][0];
-                    v[index++] = uvCoords[1][1];
-                } else if (uvIndex == 2) {
-                    v[index++] = uvCoords[2][0];
-                    v[index++] = uvCoords[2][1];
-                } else if (uvIndex == 3) {
-                    v[index++] = uvCoords[2][0];
-                    v[index++] = uvCoords[2][1];
-                } else if (uvIndex == 4) {
-                    v[index++] = uvCoords[3][0];
-                    v[index++] = uvCoords[3][1];
-                } else {
-                    v[index++] = uvCoords[0][0];
-                    v[index++] = uvCoords[0][1];
+        // Для каждой грани определяем тип текстуры
+        for (int faceIndex = 0; faceIndex < 6; faceIndex++) {
+            // Если грань не видима, пропускаем
+            if (!visible[faceIndex]) continue;
+            // Определяем тип текстуры для этой грани
+            float textureType;
+
+            switch (blockType) {
+                case GRASS:
+                    if (faceIndex == 0) { // Верхняя грань
+                        textureType = GRASS_TOP_TEX;
+                    } else if (faceIndex == 1) { // Нижняя грань
+                        textureType = DIRT_TEX;
+                    } else { // Боковые грани
+                        textureType = GRASS_SIDE_TEX;
+                    }
+                    break;
+
+                case DIRT:
+                    textureType = DIRT_TEX;
+                    break;
+
+                case STONE:
+                    textureType = STONE_TEX;
+                    break;
+
+                case WOOD:
+                    if (faceIndex == 0 || faceIndex == 1) { // Верх и низ
+                        textureType = WOOD_TOP_TEX;
+                    } else { // Боковые грани
+                        textureType = WOOD_SIDE_TEX;
+                    }
+                    break;
+
+                default:
+                    textureType = 1.0f;
+            }
+
+//            System.out.println("faceIndex -> " + faceIndex + " textureType -> " + textureType);
+//            textureType = 3.0f;
+            // Добавляем вершины для этой грани
+            for (int vertexIndex = 0; vertexIndex < 6; vertexIndex++) {
+                // Позиция
+                float vx = x + faces[faceIndex][vertexIndex][0];
+                float vy = y + faces[faceIndex][vertexIndex][1];
+                float vz = z + faces[faceIndex][vertexIndex][2];
+
+                vertices.add(vx);
+                vertices.add(vy);
+                vertices.add(vz);
+
+                // Цвет
+                vertices.add(whiteColor[0]);
+                vertices.add(whiteColor[1]);
+                vertices.add(whiteColor[2]);
+
+                // UV координаты - БЕРЕМ ПРАВИЛЬНО!
+                vertices.add(uvCoords[vertexIndex * 2]);     // U координата
+                vertices.add(uvCoords[vertexIndex * 2 + 1]); // V координата
+
+                // ТИП ТЕКСТУРЫ
+                vertices.add(textureType);
+
+                // Отладочный вывод ТОЛЬКО для первой грани (верх)
+                if (faceIndex == 0) {
+//                    System.out.println("  Вершина " + vertexIndex + ": поз=(" + vx + "," + vy + "," + vz +
+//                            ") UV=(" + uvCoords[vertexIndex * 2] + "," + uvCoords[vertexIndex * 2 + 1] +
+//                            ") type=" + textureType);
                 }
             }
         }
-        return index;
+
     }
+
 
     public void markUploaded() {
         uploaded = true;

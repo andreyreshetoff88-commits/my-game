@@ -16,11 +16,11 @@ public class SandboxGame extends Game {
     public void init(Window window) {
         this.window = window;
         camera = new Camera();
-        renderer = new Renderer();
         world = new World();
 
         physicsSystem = new PhysicsSystem();
         inputHandler = new InputHandler(window, world.getPlayer(), physicsSystem);
+        renderer = new Renderer();
     }
 
     @Override

@@ -2,7 +2,7 @@ package com.mygame.engine.graphics;
 
 import com.mygame.engine.graphics.shader.Shader;
 import com.mygame.engine.graphics.shader.ShaderManager;
-import com.mygame.engine.graphics.textures.Texture;
+import com.mygame.engine.graphics.textures.TextureManager;
 import com.mygame.world.Chunk;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -17,14 +17,13 @@ public class Renderer {
     private final Projection projection;
     private final Matrix4f modelMatrix = new Matrix4f();
     private final List<VertexArray> chunkVAOs = new ArrayList<>();
-    private final Texture dirtTexture;
+    private final TextureManager textureManager = new TextureManager();
 
     public Renderer() {
         shader = new Shader("src/main/resources/shaders/basic.vert",
-                "src/main/resources/shaders/basic.frag");
+                "src/main/resources/shaders/multi_texture.frag");
         ShaderManager.getInstance().addShader("basic", shader);
         projection = new Projection(60.0f, 0.1f, 100.0f);
-        dirtTexture = new Texture("src/main/resources/textures/blocks/dirt.png");
     }
 
     public void beginScene(Camera camera, int width, int height) {
@@ -32,16 +31,22 @@ public class Renderer {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
 
-        projection.update(width, height);
-
         shader.bind();
+        projection.update(width, height);
 
         shader.setUniform("uProjection", projection.getProjectionMatrix());
         shader.setUniform("uView", camera.getViewMatrix());
         shader.setUniform("uModel", modelMatrix.identity());
 
-        dirtTexture.bind(0);
-        shader.setUniform("uTexture", 0);
+        textureManager.bindTexture("dirt_podzol_top", 0);    // Юнит 0 - верх травы
+        textureManager.bindTexture("dirt_podzol_side", 1);   // Юнит 1 - бок травы
+        textureManager.bindTexture("dirt", 2);               // Юнит 2 - земля
+        textureManager.bindTexture("stone", 3);              // Юнит 3 - камень
+        textureManager.bindTexture("oak_top", 4);            // Юнит 4 - верх/низ дерева
+        textureManager.bindTexture("oak_side", 5);           // Юнит 5 - бок дерева
+
+        int[] texUnits = {0, 1, 2, 3, 4, 5};
+        shader.setUniform("textures", texUnits);
     }
 
     public void uploadChunk(Chunk chunk) {
@@ -160,5 +165,6 @@ public class Renderer {
         }
         chunkVAOs.clear();
         shader.cleanup();
+        textureManager.cleanup();
     }
 }

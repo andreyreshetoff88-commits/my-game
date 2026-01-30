@@ -13,7 +13,8 @@ public class VertexArray {
     private final int vertexCount;
 
     public VertexArray(float[] vertices) {
-        this.vertexCount = vertices.length / 6;
+        // 9 элементов на вершину: x,y,z,r,g,b,u,v,type
+        this.vertexCount = vertices.length / 9;
 
         vaoID = glGenVertexArrays();
         glBindVertexArray(vaoID);
@@ -22,14 +23,21 @@ public class VertexArray {
         glBindBuffer(GL_ARRAY_BUFFER, vboID);
         glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 8 * Float.BYTES, 0);
+        // Позиция (3 float)
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 9 * Float.BYTES, 0);
         glEnableVertexAttribArray(0);
 
-        glVertexAttribPointer(1, 3, GL_FLOAT, false, 8 * Float.BYTES, 3 * Float.BYTES);
+        // Цвет (3 float)
+        glVertexAttribPointer(1, 3, GL_FLOAT, false, 9 * Float.BYTES, 3 * Float.BYTES);
         glEnableVertexAttribArray(1);
 
-        glVertexAttribPointer(2, 2, GL_FLOAT, false, 8 * Float.BYTES, 6 * Float.BYTES);
+        // UV координаты (2 float)
+        glVertexAttribPointer(2, 2, GL_FLOAT, false, 9 * Float.BYTES, 6 * Float.BYTES);
         glEnableVertexAttribArray(2);
+
+        // Тип текстуры (1 float) - ВАЖНО!
+        glVertexAttribPointer(3, 1, GL_FLOAT, false, 9 * Float.BYTES, 8 * Float.BYTES);
+        glEnableVertexAttribArray(3);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
@@ -54,3 +62,4 @@ public class VertexArray {
         glDeleteBuffers(vboID);
     }
 }
+
