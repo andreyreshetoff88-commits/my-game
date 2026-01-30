@@ -1,5 +1,6 @@
 package com.mygame.engine.graphics;
 
+import com.mygame.engine.Window;
 import com.mygame.engine.graphics.shader.Shader;
 import com.mygame.engine.graphics.shader.ShaderManager;
 import com.mygame.engine.graphics.textures.TextureManager;
@@ -18,12 +19,14 @@ public class Renderer {
     private final Matrix4f modelMatrix = new Matrix4f();
     private final List<VertexArray> chunkVAOs = new ArrayList<>();
     private final TextureManager textureManager = new TextureManager();
+    private final Crosshair crosshair;
 
-    public Renderer() {
+    public Renderer(Window window) {
         shader = new Shader("src/main/resources/shaders/basic.vert",
                 "src/main/resources/shaders/multi_texture.frag");
         ShaderManager.getInstance().addShader("basic", shader);
         projection = new Projection(60.0f, 0.1f, 100.0f);
+        crosshair = new Crosshair(window.getHeight(), window.getWidth());
     }
 
     public void beginScene(Camera camera, int width, int height) {
@@ -38,14 +41,15 @@ public class Renderer {
         shader.setUniform("uView", camera.getViewMatrix());
         shader.setUniform("uModel", modelMatrix.identity());
 
-        textureManager.bindTexture("dirt_podzol_top", 0);    // Юнит 0 - верх травы
-        textureManager.bindTexture("dirt_podzol_side", 1);   // Юнит 1 - бок травы
-        textureManager.bindTexture("dirt", 2);               // Юнит 2 - земля
-        textureManager.bindTexture("stone", 3);              // Юнит 3 - камень
-        textureManager.bindTexture("oak_top", 4);            // Юнит 4 - верх/низ дерева
-        textureManager.bindTexture("oak_side", 5);           // Юнит 5 - бок дерева
+        textureManager.bindTexture("dirt_podzol_top", 0);
+        textureManager.bindTexture("dirt_podzol_side", 1);
+        textureManager.bindTexture("dirt", 2);
+        textureManager.bindTexture("stone", 3);
+        textureManager.bindTexture("oak_top", 4);
+        textureManager.bindTexture("oak_side", 5);
+        textureManager.bindTexture("cross", 6);
 
-        int[] texUnits = {0, 1, 2, 3, 4, 5};
+        int[] texUnits = {0, 1, 2, 3, 4, 5, 6};
         shader.setUniform("textures", texUnits);
     }
 
@@ -61,7 +65,21 @@ public class Renderer {
         for (VertexArray vao : chunkVAOs) {
             vao.render();
         }
+        renderCrosshair();
     }
+
+    public void renderCrosshair() {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        shader.bind();
+        shader.setUniform("uProjection", new Matrix4f().identity());
+        shader.setUniform("uView", new Matrix4f().identity());
+        shader.setUniform("uModel", new Matrix4f().identity());
+        crosshair.render();
+        shader.unbind();
+        glDisable(GL_BLEND);
+    }
+
 
     public void renderPlayer(float radius, float currentHeight, float yaw, Vector3f renderPos) {
         float[] playerVertices = createPlayerVertices(radius, currentHeight);

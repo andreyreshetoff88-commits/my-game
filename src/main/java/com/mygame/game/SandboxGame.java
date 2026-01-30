@@ -9,7 +9,7 @@ import com.mygame.world.World;
 import org.joml.Vector3f;
 
 public class SandboxGame extends Game {
-    private float physicsTick = 1.0f / 60.0f;
+    private final float physicsTick = 1.0f / 60.0f;
     private float accumulator = 0;
 
     @Override
@@ -20,7 +20,7 @@ public class SandboxGame extends Game {
 
         physicsSystem = new PhysicsSystem();
         inputHandler = new InputHandler(window, world.getPlayer(), physicsSystem);
-        renderer = new Renderer();
+        renderer = new Renderer(window);
     }
 
     @Override
