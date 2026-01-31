@@ -45,7 +45,7 @@ public class Chunk {
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
         generateBlocks();
-        //buildMesh(null);
+        buildMesh(null);
     }
 
     private void generateBlocks() {
