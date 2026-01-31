@@ -3,9 +3,6 @@ package com.mygame.engine;
 import com.mygame.engine.graphics.Renderer;
 import com.mygame.engine.graphics.shader.ShaderManager;
 import com.mygame.game.Game;
-import com.mygame.world.World;
-
-import java.util.concurrent.TimeUnit;
 
 import static org.lwjgl.glfw.GLFW.glfwGetTime;
 
@@ -33,19 +30,11 @@ public class Engine {
             game.render();
             window.update();
         }
-        cleanup(game.getWorld(), game.getRenderer());
+        cleanup(game.getRenderer());
         window.destroy();
     }
 
-    private void cleanup(World world, Renderer renderer) {
-        world.shutdown();
-        try {
-            if (!world.getChunkExecutor().awaitTermination(2, TimeUnit.SECONDS)) {
-                world.getChunkExecutor().shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            world.getChunkExecutor().shutdownNow();
-        }
+    private void cleanup(Renderer renderer) {
         renderer.cleanup();
         ShaderManager.getInstance().cleanup();
         window.destroy();

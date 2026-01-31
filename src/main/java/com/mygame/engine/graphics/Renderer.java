@@ -9,7 +9,9 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.lwjgl.opengl.GL11.*;
 
@@ -17,7 +19,7 @@ public class Renderer {
     private final Shader shader;
     private final Projection projection;
     private final Matrix4f modelMatrix = new Matrix4f();
-    private final List<VertexArray> chunkVAOs = new ArrayList<>();
+    private final Map<Chunk, VertexArray> chunkVAOs = new HashMap<>();
     private final TextureManager textureManager = new TextureManager();
     private final Crosshair crosshair;
 
@@ -56,13 +58,23 @@ public class Renderer {
     public void uploadChunk(Chunk chunk) {
         if (chunk.getMesh() != null && chunk.getMesh().getVertices() != null) {
             VertexArray vao = new VertexArray(chunk.getMesh().getVertices());
-            chunkVAOs.add(vao);
-            chunk.markUploaded();
+            chunkVAOs.put(chunk, vao);
+            System.out.println(chunk.getMesh().getId() + " chunk uploaded");
         }
     }
 
     public void renderChunk() {
-        for (VertexArray vao : chunkVAOs) {
+        for (Map.Entry<Chunk, VertexArray> entry : chunkVAOs.entrySet()) {
+            Chunk chunk = entry.getKey();
+            VertexArray vao = entry.getValue();
+
+            if (chunk.getMesh().isDirty()) {
+                vao.cleanup(); // удаляем старый VAO
+                VertexArray newVao = new VertexArray(chunk.getMesh().getVertices());
+                entry.setValue(newVao); // обновляем VAO
+                chunk.getMesh().markDirty(); // помечаем чанк как не dirty
+                System.out.println(chunk.getMesh().getId() + " chunk rendered");
+            }
             vao.render();
         }
         renderCrosshair();
@@ -178,7 +190,7 @@ public class Renderer {
     }
 
     public void cleanup() {
-        for (VertexArray vao : chunkVAOs) {
+        for (VertexArray vao : chunkVAOs.values()) {
             vao.cleanup();
         }
         chunkVAOs.clear();

@@ -8,20 +8,14 @@ import org.joml.Vector3f;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class World {
     private static final int VIEW_DISTANCE = 3;
     private static final int MAX_CHUNKS_PER_FRAME = 4;
-    private static final int MAX_CHUNKS_TO_UPLOAD = 10;
     @Getter
     private Player player;
     private final List<Entity> entities = new ArrayList<>();
     private final Map<ChunkPos, Chunk> chunks = new HashMap<>();
-    @Getter
-    private final ExecutorService chunkExecutor =
-            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private final ConcurrentLinkedQueue<Chunk> readyChunks = new ConcurrentLinkedQueue<>();
     private final ConcurrentLinkedQueue<Chunk> chunksToUpload = new ConcurrentLinkedQueue<>();
 
@@ -42,14 +36,36 @@ public class World {
         generateChunksAround(player.getPosition());
         while (!readyChunks.isEmpty()) {
             Chunk chunk = readyChunks.poll();
-            if (chunk != null) {
-                chunks.put(new ChunkPos(chunk.getChunkX(), chunk.getChunkZ()), chunk);
-                if (chunksToUpload.size() < MAX_CHUNKS_TO_UPLOAD)
-                    chunksToUpload.add(chunk);
-            }
+            if (chunk == null) continue;
+
+            ChunkPos pos = new ChunkPos(chunk.getChunkX(), chunk.getChunkZ());
+            chunks.put(pos, chunk);
+
+            chunk.buildMesh(getNeighborChunks(chunk.getChunkX(), chunk.getChunkZ()));
+            chunksToUpload.add(chunk);
+
+            rebuildNeighbors(chunk.getChunkX(), chunk.getChunkZ());
         }
         for (Entity entity : entities) {
             entity.update(deltaTime, getNearbyBlocks(entity.getPosition()));
+        }
+    }
+
+    private void rebuildNeighbors(int chunkX, int chunkZ) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dz == 0) continue;
+
+                ChunkPos pos = new ChunkPos(chunkX + dx, chunkZ + dz);
+                Chunk neighbor = chunks.get(pos);
+                if (neighbor != null) {
+                    neighbor.buildMesh(getNeighborChunks(
+                            neighbor.getChunkX(),
+                            neighbor.getChunkZ()
+                    ));
+                    chunksToUpload.add(neighbor);
+                }
+            }
         }
     }
 
@@ -65,11 +81,8 @@ public class World {
 
                 if (!chunks.containsKey(cp) && chunksScheduled < MAX_CHUNKS_PER_FRAME) {
                     chunksScheduled++;
-                    chunkExecutor.submit(() -> {
-                        Chunk newChunk = new Chunk(cp.x(), cp.z());
-                        newChunk.buildMesh(null);
-                        readyChunks.add(newChunk);
-                    });
+                    Chunk newChunk = new Chunk(cp.x(), cp.z());
+                    readyChunks.add(newChunk);
                 }
             }
         }
@@ -94,6 +107,7 @@ public class World {
             Chunk chunk = chunksToUpload.poll();
             if (chunk != null && !chunk.isUploaded()) {
                 renderer.uploadChunk(chunk);
+                chunk.markUploaded();
             }
         }
 
@@ -140,7 +154,38 @@ public class World {
         return (int) Math.floor(worldCoord / (Chunk.SIZE * Chunk.BLOCK_SIZE));
     }
 
-    public void shutdown() {
-        chunkExecutor.shutdown();
+    public void destroyBlock(Block block) {
+        if (block == null) return;
+
+        int chunkX = worldToChunk(block.position().x);
+        int chunkZ = worldToChunk(block.position().z);
+
+        Chunk chunk = chunks.get(new ChunkPos(chunkX, chunkZ));
+        if (chunk == null) return;
+
+        chunk.destroyBlock(block);
+
+        chunk.buildMesh(getNeighborChunks(chunk.getChunkX(), chunk.getChunkZ()));
+        chunksToUpload.add(chunk);
+
+        rebuildNeighbors(chunkX, chunkZ);
+    }
+
+    public Map<Long, Chunk> getNeighborChunks(int chunkX, int chunkZ) {
+        Map<Long, Chunk> neighbors = new HashMap<>();
+
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                ChunkPos pos = new ChunkPos(chunkX + dx, chunkZ + dz);
+                Chunk neighbor = chunks.get(pos);
+                if (neighbor != null) {
+                    long key = (((long) (chunkX + dx)) << 32) | ((chunkZ + dz) & 0xFFFFFFFFL);
+                    neighbors.put(key, neighbor);
+                }
+            }
+        }
+
+        return neighbors;
     }
 }

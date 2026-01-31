@@ -19,7 +19,7 @@ public class SandboxGame extends Game {
         world = new World();
 
         physicsSystem = new PhysicsSystem();
-        inputHandler = new InputHandler(window, world.getPlayer(), physicsSystem);
+        inputHandler = new InputHandler(window, world.getPlayer(), physicsSystem, world);
         renderer = new Renderer(window);
     }
 

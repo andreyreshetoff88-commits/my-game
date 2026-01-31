@@ -1,5 +1,6 @@
 package com.mygame.world;
 
+import com.mygame.Utils.TextureScanner;
 import com.mygame.noise.OpenSimplexNoise;
 import lombok.Getter;
 import org.joml.Vector3f;
@@ -44,7 +45,7 @@ public class Chunk {
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
         generateBlocks();
-        buildMesh(null);
+        //buildMesh(null);
     }
 
     private void generateBlocks() {
@@ -94,7 +95,7 @@ public class Chunk {
 
     public boolean isBlockAt(int x, int y, int z, Map<Long, Chunk> neighborChunks) {
         int key = pack(x, y, z);
-        if (blockMap.containsKey(key)) return true;
+        if (blockMap.containsKey(key)) return false;
 
         if (neighborChunks != null) {
             int chunkOffsetX = (x < 0) ? -1 : (x >= SIZE) ? 1 : 0;
@@ -106,11 +107,11 @@ public class Chunk {
                 if (neighbor != null) {
                     int nx = x - chunkOffsetX * SIZE;
                     int nz = z - chunkOffsetZ * SIZE;
-                    return neighbor.blockMap.containsKey(pack(nx, y, nz));
+                    return !neighbor.blockMap.containsKey(pack(nx, y, nz));
                 }
             }
         }
-        return false;
+        return true;
     }
 
     public void buildMesh(Map<Long, Chunk> neighborChunks) {
@@ -122,12 +123,12 @@ public class Chunk {
             int by = (int) (block.position().y / BLOCK_SIZE);
             int bz = (int) ((block.position().z / BLOCK_SIZE) - chunkZ * SIZE);
 
-            boolean top = !isBlockAt(bx, by + 1, bz, neighborChunks);
-            boolean bottom = !isBlockAt(bx, by - 1, bz, neighborChunks);
-            boolean front = !isBlockAt(bx, by, bz + 1, neighborChunks);
-            boolean back = !isBlockAt(bx, by, bz - 1, neighborChunks);
-            boolean left = !isBlockAt(bx - 1, by, bz, neighborChunks);
-            boolean right = !isBlockAt(bx + 1, by, bz, neighborChunks);
+            boolean top = isBlockAt(bx, by + 1, bz, neighborChunks);
+            boolean bottom = isBlockAt(bx, by - 1, bz, neighborChunks);
+            boolean front = isBlockAt(bx, by, bz + 1, neighborChunks);
+            boolean back = isBlockAt(bx, by, bz - 1, neighborChunks);
+            boolean left = isBlockAt(bx - 1, by, bz, neighborChunks);
+            boolean right = isBlockAt(bx + 1, by, bz, neighborChunks);
 
             addCube(verticesList, block.position().x, block.position().y, block.position().z, s,
                     top, bottom, front, back, left, right, block.blockType());
@@ -139,7 +140,7 @@ public class Chunk {
         }
 
         if (mesh == null)
-            mesh = new ChunkMesh(vertices);
+            mesh = new ChunkMesh(TextureScanner.index++, vertices);
         else {
             mesh.updateVertices(vertices);
         }
@@ -149,7 +150,6 @@ public class Chunk {
                          boolean top, boolean bottom, boolean front,
                          boolean back, boolean left, boolean right, BlockType blockType) {
 
-        // ТИПЫ ТЕКСТУР ДЛЯ ШЕЙДЕРА
         final float GRASS_TOP_TEX = 0.0f;
         final float GRASS_SIDE_TEX = 1.0f;
         final float DIRT_TEX = 2.0f;
@@ -157,10 +157,8 @@ public class Chunk {
         final float WOOD_TOP_TEX = 4.0f;
         final float WOOD_SIDE_TEX = 5.0f;
 
-        // Цвет вершин
         float[] whiteColor = {1.0f, 1.0f, 1.0f};
 
-        // Координаты граней куба
         float[][][] faces = {
                 // face 0: Верхняя грань
                 {{-s, +s, -s}, {+s, +s, -s}, {+s, +s, +s}, {+s, +s, +s}, {-s, +s, +s}, {-s, +s, -s}},
@@ -176,33 +174,28 @@ public class Chunk {
                 {{+s, -s, -s}, {+s, -s, +s}, {+s, +s, +s}, {+s, +s, +s}, {+s, +s, -s}, {+s, -s, -s}}
         };
 
-        // Флаги видимости для каждой грани
         boolean[] visible = {top, bottom, front, back, left, right};
 
-        // UV координаты для одной грани (2 треугольника = 6 вершин)
         float[] uvCoords = {
-                0, 0,  // Вершина 0
-                1, 0,  // Вершина 1
-                1, 1,  // Вершина 2
-                1, 1,  // Вершина 3
-                0, 1,  // Вершина 4
-                0, 0   // Вершина 5
+                0, 0,
+                1, 0,
+                1, 1,
+                1, 1,
+                0, 1,
+                0, 0
         };
 
-        // Для каждой грани определяем тип текстуры
         for (int faceIndex = 0; faceIndex < 6; faceIndex++) {
-            // Если грань не видима, пропускаем
             if (!visible[faceIndex]) continue;
-            // Определяем тип текстуры для этой грани
             float textureType;
 
             switch (blockType) {
                 case GRASS:
-                    if (faceIndex == 0) { // Верхняя грань
+                    if (faceIndex == 0) {
                         textureType = GRASS_TOP_TEX;
-                    } else if (faceIndex == 1) { // Нижняя грань
+                    } else if (faceIndex == 1) {
                         textureType = DIRT_TEX;
-                    } else { // Боковые грани
+                    } else {
                         textureType = GRASS_SIDE_TEX;
                     }
                     break;
@@ -227,11 +220,7 @@ public class Chunk {
                     textureType = 1.0f;
             }
 
-//            System.out.println("faceIndex -> " + faceIndex + " textureType -> " + textureType);
-//            textureType = 3.0f;
-            // Добавляем вершины для этой грани
             for (int vertexIndex = 0; vertexIndex < 6; vertexIndex++) {
-                // Позиция
                 float vx = x + faces[faceIndex][vertexIndex][0];
                 float vy = y + faces[faceIndex][vertexIndex][1];
                 float vz = z + faces[faceIndex][vertexIndex][2];
@@ -239,30 +228,22 @@ public class Chunk {
                 vertices.add(vx);
                 vertices.add(vy);
                 vertices.add(vz);
-
-                // Цвет
                 vertices.add(whiteColor[0]);
                 vertices.add(whiteColor[1]);
                 vertices.add(whiteColor[2]);
-
-                // UV координаты - БЕРЕМ ПРАВИЛЬНО!
-                vertices.add(uvCoords[vertexIndex * 2]);     // U координата
-                vertices.add(uvCoords[vertexIndex * 2 + 1]); // V координата
-
-                // ТИП ТЕКСТУРЫ
+                vertices.add(uvCoords[vertexIndex * 2]);
+                vertices.add(uvCoords[vertexIndex * 2 + 1]);
                 vertices.add(textureType);
-
-                // Отладочный вывод ТОЛЬКО для первой грани (верх)
-                if (faceIndex == 0) {
-//                    System.out.println("  Вершина " + vertexIndex + ": поз=(" + vx + "," + vy + "," + vz +
-//                            ") UV=(" + uvCoords[vertexIndex * 2] + "," + uvCoords[vertexIndex * 2 + 1] +
-//                            ") type=" + textureType);
-                }
             }
         }
 
     }
 
+    public void destroyBlock(Block block) {
+        blocks.remove(block);
+        blockMap.values().remove(block);
+        uploaded = false;
+    }
 
     public void markUploaded() {
         uploaded = true;

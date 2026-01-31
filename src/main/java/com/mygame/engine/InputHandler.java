@@ -3,6 +3,7 @@ package com.mygame.engine;
 import com.mygame.engine.entity.Player;
 import com.mygame.engine.physics.PhysicsSystem;
 import com.mygame.world.Block;
+import com.mygame.world.World;
 import org.joml.Vector3f;
 
 import java.util.List;
@@ -13,15 +14,17 @@ public class InputHandler {
     private final Window window;
     private final Player player;
     private final PhysicsSystem physicsSystem;
+    private final World world;
 
     private boolean firstMouse = true;
     private double lastX;
     private double lastY;
 
-    public InputHandler(Window window, Player player, PhysicsSystem physicsSystem) {
+    public InputHandler(Window window, Player player, PhysicsSystem physicsSystem, World world) {
         this.window = window;
         this.player = player;
         this.physicsSystem = physicsSystem;
+        this.world = world;
         initMouse();
     }
 
@@ -40,6 +43,12 @@ public class InputHandler {
             lastY = ypos;
 
             player.rotate(xOffset, yOffset);
+        });
+
+        glfwSetMouseButtonCallback(window.getHandle(), (win, button, action, mods) -> {
+            if (button == GLFW_MOUSE_BUTTON_LEFT) {
+                player.punchRightHand(world);
+            }
         });
 
         glfwSetInputMode(window.getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);

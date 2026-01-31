@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.*;
 
 public class TextureScanner {
+    public static int index = 0;
     public static Map<String, String> scanFolder() {
         File file = new File("src/main/resources/textures");
         Map<String, String> textureMap = new HashMap<>();

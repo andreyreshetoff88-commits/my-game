@@ -2,6 +2,8 @@ package com.mygame.engine.entity;
 
 import com.mygame.engine.graphics.Renderer;
 import com.mygame.world.Block;
+import com.mygame.world.Chunk;
+import com.mygame.world.World;
 import lombok.Getter;
 import org.joml.Vector3f;
 
@@ -9,6 +11,7 @@ import java.util.List;
 
 @Getter
 public class Player extends Entity {
+    private static final float REACH_DISTANCE = 8.0f;
     private final float mouseSensitivity = 0.1f;
     private final float moveSpeed = 3.0f;
     private final float jumpStrength = 4f;
@@ -68,6 +71,38 @@ public class Player extends Entity {
         front.normalize();
 
         right.set(front).cross(up).normalize();
+    }
+
+    private Block getTargetBlock(World world) {
+        Vector3f origin = getEyePosition();
+        Vector3f direction = new Vector3f(front).normalize();
+
+        float step = 0.1f;
+        for (float t = 0; t < REACH_DISTANCE; t += step) {
+            Vector3f pos = new Vector3f(origin).fma(t, direction); // origin + direction * t
+
+            List<Block> nearby = world.getNearbyBlocks(pos);
+            for (Block block : nearby) {
+                Vector3f bp = block.position(); // это уже мировая позиция блока
+                float half = Chunk.BLOCK_SIZE / 2f;
+
+                if (pos.x >= bp.x - half && pos.x <= bp.x + half &&
+                        pos.y >= bp.y && pos.y <= bp.y + Chunk.BLOCK_SIZE &&
+                        pos.z >= bp.z - half && pos.z <= bp.z + half) {
+                    return block;
+                }
+            }
+        }
+
+        return null; // ничего не найдено
+    }
+
+    public void punchRightHand(World world) {
+        Block block = getTargetBlock(world);
+        if (block != null) {
+            System.out.println(block.position());
+            world.destroyBlock(block);
+        }
     }
 
     public void jump() {
