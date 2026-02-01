@@ -3,6 +3,9 @@ package com.mygame.world;
 import com.mygame.engine.entity.Entity;
 import com.mygame.engine.entity.Player;
 import com.mygame.engine.graphics.Renderer;
+import com.mygame.world.block.Block;
+import com.mygame.world.chunk.Chunk;
+import com.mygame.world.chunk.ChunkPos;
 import lombok.Getter;
 import org.joml.Vector3f;
 

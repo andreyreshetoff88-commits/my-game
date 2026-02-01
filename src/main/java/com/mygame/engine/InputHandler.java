@@ -2,7 +2,7 @@ package com.mygame.engine;
 
 import com.mygame.engine.entity.Player;
 import com.mygame.engine.physics.PhysicsSystem;
-import com.mygame.world.Block;
+import com.mygame.world.block.Block;
 import com.mygame.world.World;
 import org.joml.Vector3f;
 

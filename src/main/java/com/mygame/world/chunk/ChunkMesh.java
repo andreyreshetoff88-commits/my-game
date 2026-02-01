@@ -1,4 +1,4 @@
-package com.mygame.world;
+package com.mygame.world.chunk;
 
 import lombok.Getter;
 

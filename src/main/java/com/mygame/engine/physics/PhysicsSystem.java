@@ -1,7 +1,7 @@
 package com.mygame.engine.physics;
 
 import com.mygame.engine.entity.Entity;
-import com.mygame.world.Block;
+import com.mygame.world.block.Block;
 import org.joml.Vector3f;
 
 import java.util.List;

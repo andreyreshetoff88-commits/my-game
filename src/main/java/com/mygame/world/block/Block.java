@@ -1,4 +1,4 @@
-package com.mygame.world;
+package com.mygame.world.block;
 
 import org.joml.Vector3f;
 

@@ -4,7 +4,7 @@ import com.mygame.engine.Window;
 import com.mygame.engine.graphics.shader.Shader;
 import com.mygame.engine.graphics.shader.ShaderManager;
 import com.mygame.engine.graphics.textures.TextureManager;
-import com.mygame.world.Chunk;
+import com.mygame.world.chunk.Chunk;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 

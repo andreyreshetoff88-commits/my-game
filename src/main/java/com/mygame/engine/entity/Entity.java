@@ -2,7 +2,7 @@ package com.mygame.engine.entity;
 
 import com.mygame.engine.graphics.Renderer;
 import com.mygame.engine.physics.PhysicsSystem;
-import com.mygame.world.Block;
+import com.mygame.world.block.Block;
 import lombok.Getter;
 import lombok.Setter;
 import org.joml.Vector3f;

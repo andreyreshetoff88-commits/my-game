@@ -1,7 +1,9 @@
-package com.mygame.world;
+package com.mygame.world.chunk;
 
 import com.mygame.Utils.TextureScanner;
 import com.mygame.noise.OpenSimplexNoise;
+import com.mygame.world.block.Block;
+import com.mygame.world.block.BlockType;
 import lombok.Getter;
 import org.joml.Vector3f;
 
