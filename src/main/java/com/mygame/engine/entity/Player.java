@@ -11,7 +11,7 @@ import java.util.List;
 
 @Getter
 public class Player extends Entity {
-    private static final float REACH_DISTANCE = 8.0f;
+    private static final float REACH_DISTANCE = 2.0f;
     private final float mouseSensitivity = 0.1f;
     private final float moveSpeed = 3.0f;
     private final float jumpStrength = 4f;
@@ -77,25 +77,31 @@ public class Player extends Entity {
         Vector3f origin = getEyePosition();
         Vector3f direction = new Vector3f(front).normalize();
 
-        float step = 0.1f;
+        float step = 0.05f;
+
         for (float t = 0; t < REACH_DISTANCE; t += step) {
-            Vector3f pos = new Vector3f(origin).fma(t, direction); // origin + direction * t
+            Vector3f pos = new Vector3f(origin).fma(t, direction);
 
             List<Block> nearby = world.getNearbyBlocks(pos);
             for (Block block : nearby) {
-                Vector3f bp = block.position(); // это уже мировая позиция блока
+                Vector3f bp = block.position();
                 float half = Chunk.BLOCK_SIZE / 2f;
 
-                if (pos.x >= bp.x - half && pos.x <= bp.x + half &&
-                        pos.y >= bp.y && pos.y <= bp.y + Chunk.BLOCK_SIZE &&
-                        pos.z >= bp.z - half && pos.z <= bp.z + half) {
-                    return block;
+                boolean inside =
+                        pos.x >= bp.x - half && pos.x <= bp.x + half &&
+                                pos.y >= bp.y - half && pos.y <= bp.y + half &&
+                                pos.z >= bp.z - half && pos.z <= bp.z + half;
+
+                if (inside) {
+                    return block; // первый по лучу — правильный
                 }
             }
         }
 
-        return null; // ничего не найдено
+        return null;
     }
+
+
 
     public void punchRightHand(World world) {
         Block block = getTargetBlock(world);
