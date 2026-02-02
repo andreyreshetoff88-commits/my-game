@@ -32,6 +32,7 @@ public class World {
         int chunkZ = worldToChunk(player.getPosition().z);
         ChunkPos pos = new ChunkPos(chunkX, chunkZ);
         Chunk playerChunk = chunks.get(pos);
+        playerChunk.buildMesh(getNeighborChunks(chunkX, chunkZ));
         chunksToUpload.add(playerChunk);
     }
 

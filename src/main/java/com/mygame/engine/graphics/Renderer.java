@@ -50,8 +50,9 @@ public class Renderer {
         textureManager.bindTexture("oak_top", 4);
         textureManager.bindTexture("oak_side", 5);
         textureManager.bindTexture("cross", 6);
+        textureManager.bindTexture("coal_ore", 7);
 
-        int[] texUnits = {0, 1, 2, 3, 4, 5, 6};
+        int[] texUnits = {0, 1, 2, 3, 4, 5, 6, 7};
         shader.setUniform("textures", texUnits);
     }
 
@@ -59,7 +60,6 @@ public class Renderer {
         if (chunk.getMesh() != null && chunk.getMesh().getVertices() != null) {
             VertexArray vao = new VertexArray(chunk.getMesh().getVertices());
             chunkVAOs.put(chunk, vao);
-            System.out.println(chunk.getMesh().getId() + " chunk uploaded");
         }
     }
 
@@ -73,7 +73,6 @@ public class Renderer {
                 VertexArray newVao = new VertexArray(chunk.getMesh().getVertices());
                 entry.setValue(newVao); // обновляем VAO
                 chunk.getMesh().markDirty(); // помечаем чанк как не dirty
-                System.out.println(chunk.getMesh().getId() + " chunk rendered");
             }
             vao.render();
         }

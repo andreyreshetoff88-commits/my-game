@@ -106,7 +106,6 @@ public class Player extends Entity {
     public void punchRightHand(World world) {
         Block block = getTargetBlock(world);
         if (block != null) {
-            System.out.println(block.getPosition());
             world.destroyBlock(block);
         }
     }

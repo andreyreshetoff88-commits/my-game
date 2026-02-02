@@ -4,13 +4,11 @@ import lombok.Getter;
 
 @Getter
 public class ChunkMesh {
-    private final int id;
     private float[] vertices;
     private int vertexCount;
     private boolean dirty;
 
-    public ChunkMesh(int id, float[] vertices) {
-        this.id = id;
+    public ChunkMesh(float[] vertices) {
         this.vertices = vertices;
         this.vertexCount = vertices.length / 8;
         this.dirty = true;

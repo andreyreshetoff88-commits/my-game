@@ -11,7 +11,8 @@ public enum BlockType {
     // Тип блока КАМЕНЬ
     STONE("stone", "stone", "stone"),
     // Тип блока ДЕРЕВО
-    WOOD("oak_top", "oak_side", "oak_top");
+    WOOD("oak_top", "oak_side", "oak_top"),
+    COAL_ORE("coal_ore", "coal_ore", "coal_ore"),;
 
     // Поля для хранения имён текстур для каждой стороны
     private final String topTexture;     // Имя текстуры для верхней стороны
