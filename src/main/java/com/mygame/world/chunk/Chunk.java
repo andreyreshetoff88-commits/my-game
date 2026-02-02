@@ -167,9 +167,11 @@ public class Chunk {
     }
 
     public void destroyBlock(Block block) {
-        blocks.remove(block);
-        blockMap.values().remove(block);
-        uploaded = false;
+        if (block.getBlockType() != BlockType.BEDROCK) {
+            blocks.remove(block);
+            blockMap.values().remove(block);
+            uploaded = false;
+        }
     }
 
     private float getUnitForeTexture(BlockType blockType, int faceIndex) {
@@ -180,6 +182,9 @@ public class Chunk {
         final float WOOD_TOP_TEX = 4.0f;
         final float WOOD_SIDE_TEX = 5.0f;
         final float COAL_ORE = 7.0f;
+        final float IRON_ORE = 8.0f;
+        final float BEDROCK = 9.0f;
+        final float LEAVES_OAK = 10.0f;
 
         switch (blockType) {
             case GRASS -> {
@@ -206,6 +211,15 @@ public class Chunk {
             }
             case COAL_ORE -> {
                 return COAL_ORE;
+            }
+            case IRON_ORE -> {
+                return IRON_ORE;
+            }
+            case BEDROCK -> {
+                return BEDROCK;
+            }
+            case LEAVES_OAK -> {
+                return LEAVES_OAK;
             }
             default -> {
                 return 1.0f;

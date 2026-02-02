@@ -3,7 +3,7 @@
 in vec2 texCoord;
 in float textureType;
 
-uniform sampler2D textures[8];
+uniform sampler2D textures[11];
 
 out vec4 FragColor;
 

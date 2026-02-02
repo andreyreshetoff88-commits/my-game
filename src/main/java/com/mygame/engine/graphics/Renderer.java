@@ -51,8 +51,11 @@ public class Renderer {
         textureManager.bindTexture("oak_side", 5);
         textureManager.bindTexture("cross", 6);
         textureManager.bindTexture("coal_ore", 7);
+        textureManager.bindTexture("iron_ore", 8);
+        textureManager.bindTexture("bedrock", 9);
+        textureManager.bindTexture("leaves_oak", 10);
 
-        int[] texUnits = {0, 1, 2, 3, 4, 5, 6, 7};
+        int[] texUnits = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
         shader.setUniform("textures", texUnits);
     }
 
