@@ -138,9 +138,9 @@ public class World {
         float maxY = Float.NEGATIVE_INFINITY;
         Vector3f top = null;
         for (Block block : chunk.getBlocks()) {
-            if (block.position().y > maxY) {
-                maxY = block.position().y;
-                top = block.position();
+            if (block.getPosition().y > maxY) {
+                maxY = block.getPosition().y;
+                top = block.getPosition();
             }
         }
         if (top != null) {
@@ -160,8 +160,8 @@ public class World {
     public void destroyBlock(Block block) {
         if (block == null) return;
 
-        int chunkX = worldToChunk(block.position().x);
-        int chunkZ = worldToChunk(block.position().z);
+        int chunkX = worldToChunk(block.getPosition().x);
+        int chunkZ = worldToChunk(block.getPosition().z);
 
         Chunk chunk = chunks.get(new ChunkPos(chunkX, chunkZ));
         if (chunk == null) return;

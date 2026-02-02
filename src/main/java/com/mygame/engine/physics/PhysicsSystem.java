@@ -32,7 +32,7 @@ public class PhysicsSystem {
     }
 
     private void getBlockAABB(Block block, Vector3f min, Vector3f max) {
-        Vector3f p = block.position();
+        Vector3f p = block.getPosition();
 
         min.set(
                 p.x - HALF_BLOCK,
@@ -82,7 +82,7 @@ public class PhysicsSystem {
         float best = Float.NEGATIVE_INFINITY;
 
         for (Block b : blocks) {
-            Vector3f bp = b.position();
+            Vector3f bp = b.getPosition();
 
             boolean overlapX =
                     entity.getPosition().x + entity.getRadius() > bp.x - HALF_BLOCK &&
@@ -106,19 +106,19 @@ public class PhysicsSystem {
     public void verticalCollision(Entity entity, List<Block> blocks) {
         if (entity.getVelocity().y > 0) {
             for (Block block : blocks) {
-                if (block.position().y - entity.getHeight() >= entity.getPosition().y + entity.getRadius()) {
+                if (block.getPosition().y - entity.getHeight() >= entity.getPosition().y + entity.getRadius()) {
                     boolean insideX = entity.getPosition().x + entity.getRadius() >=
-                            block.position().x - entity.getRadius() &&
-                            entity.getPosition().x - entity.getRadius() <= block.position().x + entity.getRadius();
+                            block.getPosition().x - entity.getRadius() &&
+                            entity.getPosition().x - entity.getRadius() <= block.getPosition().x + entity.getRadius();
                     boolean insideZ = entity.getPosition().z + entity.getRadius() >=
-                            block.position().z - entity.getRadius() &&
-                            entity.getPosition().z - entity.getRadius() <= block.position().z + entity.getRadius();
+                            block.getPosition().z - entity.getRadius() &&
+                            entity.getPosition().z - entity.getRadius() <= block.getPosition().z + entity.getRadius();
 
                     if (!insideX || !insideZ) {
                         continue;
                     }
 
-                    if (entity.getPosition().y + entity.getHeight() + 0.25f >= block.position().y - 0.25f) {
+                    if (entity.getPosition().y + entity.getHeight() + 0.25f >= block.getPosition().y - 0.25f) {
                         entity.getVelocity().y = 0;
                     }
                 }
@@ -171,7 +171,7 @@ public class PhysicsSystem {
         float playerFeet = entity.getPosition().y;
 
         for (Block block : blocks) {
-            Vector3f bp = block.position();
+            Vector3f bp = block.getPosition();
 
             boolean overlapX = newPos.x + entity.getRadius() > bp.x - 0.25f &&
                     newPos.x - entity.getRadius() < bp.x + 0.25f;

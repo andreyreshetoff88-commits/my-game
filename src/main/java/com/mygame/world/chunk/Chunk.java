@@ -2,8 +2,7 @@ package com.mygame.world.chunk;
 
 import com.mygame.Utils.TextureScanner;
 import com.mygame.noise.OpenSimplexNoise;
-import com.mygame.world.block.Block;
-import com.mygame.world.block.BlockType;
+import com.mygame.world.block.*;
 import lombok.Getter;
 import org.joml.Vector3f;
 
@@ -64,16 +63,15 @@ public class Chunk {
                 for (int y = 0; y <= height; y++) {
                     Vector3f pos = new Vector3f(worldX * BLOCK_SIZE, y * BLOCK_SIZE, worldZ * BLOCK_SIZE);
 
-                    BlockType blockType;
+                    Block block;
                     if (y == height) {
-                        blockType = BlockType.GRASS; // Трава на поверхности
+                        block = new GrassBlock(pos); // Трава на поверхности
                     } else if (y > height - 3) {
-                        blockType = BlockType.DIRT;  // Земля чуть ниже
+                        block = new DirtBlock(pos);  // Земля чуть ниже
                     } else {
-                        blockType = BlockType.STONE; // Камень глубоко
+                        block = new StoneBlock(pos); // Камень глубоко
                     }
 
-                    Block block = new Block(pos, blockType);
                     blocks.add(block);
 
                     int key = pack(x, y, z);
@@ -121,9 +119,9 @@ public class Chunk {
         float s = BLOCK_SIZE / 2f;
 
         for (Block block : blocks) {
-            int bx = (int) ((block.position().x / BLOCK_SIZE) - chunkX * SIZE);
-            int by = (int) (block.position().y / BLOCK_SIZE);
-            int bz = (int) ((block.position().z / BLOCK_SIZE) - chunkZ * SIZE);
+            int bx = (int) ((block.getPosition().x / BLOCK_SIZE) - chunkX * SIZE);
+            int by = (int) (block.getPosition().y / BLOCK_SIZE);
+            int bz = (int) ((block.getPosition().z / BLOCK_SIZE) - chunkZ * SIZE);
 
             boolean top = isBlockAt(bx, by + 1, bz, neighborChunks);
             boolean bottom = isBlockAt(bx, by - 1, bz, neighborChunks);
@@ -132,8 +130,8 @@ public class Chunk {
             boolean left = isBlockAt(bx - 1, by, bz, neighborChunks);
             boolean right = isBlockAt(bx + 1, by, bz, neighborChunks);
 
-            addCube(verticesList, block.position().x, block.position().y, block.position().z, s,
-                    top, bottom, front, back, left, right, block.blockType());
+            addCube(verticesList, block.getPosition().x, block.getPosition().y, block.getPosition().z, s,
+                    top, bottom, front, back, left, right, block.getBlockType());
         }
 
         float[] vertices = new float[verticesList.size()];

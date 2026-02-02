@@ -84,7 +84,7 @@ public class Player extends Entity {
 
             List<Block> nearby = world.getNearbyBlocks(pos);
             for (Block block : nearby) {
-                Vector3f bp = block.position();
+                Vector3f bp = block.getPosition();
                 float half = Chunk.BLOCK_SIZE / 2f;
 
                 boolean inside =
@@ -106,7 +106,7 @@ public class Player extends Entity {
     public void punchRightHand(World world) {
         Block block = getTargetBlock(world);
         if (block != null) {
-            System.out.println(block.position());
+            System.out.println(block.getPosition());
             world.destroyBlock(block);
         }
     }
