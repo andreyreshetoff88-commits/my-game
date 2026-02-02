@@ -8,8 +8,8 @@ public class Crosshair {
     private final VertexArray vao;
 
     public Crosshair(int windowHeight, int windowWidth) {
-        float size = 0.03f;
-        float aspect = (float) windowHeight / windowWidth;
+        float size = 0.1f;
+        float aspect = (float) windowWidth / windowHeight;
 
         float[] vertices = new float[]{
                 -size * aspect,  size, 0f, 1f,1f,1f, 0f,1f, 6f,
